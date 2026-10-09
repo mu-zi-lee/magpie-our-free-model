@@ -74,7 +74,7 @@ export async function createManagedPlugin(input, options = {}) {
       // Carry the packaged picture without depending on access to GitHub.
       icon: providerIcon ??= `data:image/webp;base64,${fs.readFileSync(new URL('../assets/icon.webp', import.meta.url)).toString('base64')}`,
       methods: [
-        { type: 'oauth', label: remoteByDefault(options) ? '启用全部渠道 / 临时远程控制台（Tailscale）' : '启用全部渠道 / 打开账号管理控制台', authorize: () => authorizeConsole() },
+        { type: 'oauth', label: remoteByDefault(options) ? '启用模型 / 临时远程控制台（Tailscale）' : '启用模型 / 打开账号管理控制台', authorize: () => authorizeConsole() },
         { type: 'oauth', label: remoteByDefault(options) ? '本机控制台 / SSH 转发' : '临时远程控制台（Tailscale）', authorize: () => authorizeConsole(remoteByDefault(options) ? 'local' : 'tailscale') },
       ],
       async loader(getAuth) {

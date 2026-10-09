@@ -25,13 +25,15 @@ export function getManagedRuntime(input = {}, options = {}) {
   const port = options.port;
   if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) throw new Error('managed.port 必须为 0 到 65535 的整数');
   const eacSourceDir = options.eacSourceDir ? path.resolve(options.eacSourceDir) : undefined;
+  const autoInstallEac = options.autoInstallEac !== false;
+  if (options.autoInstallEac !== undefined && typeof options.autoInstallEac !== 'boolean') throw new Error('managed.autoInstallEac 必须为布尔值');
   const consolePort = options.consolePort;
   if (consolePort !== undefined && (!Number.isInteger(consolePort) || consolePort < 0 || consolePort > 65535 || consolePort !== 0 && consolePort === port)) throw new Error('managed.consolePort 必须为独立的 0 到 65535 整数端口');
   const remote = { consoleAccess: options.consoleAccess ?? 'auto', autoInstallTailscale: options.autoInstallTailscale !== false,
     tailscalePath: options.tailscalePath, tailscaledPath: options.tailscaledPath };
   if (!['auto', 'local', 'tailscale'].includes(remote.consoleAccess)) throw new Error('managed.consoleAccess 必须为 auto、local 或 tailscale');
   for (const key of ['tailscalePath', 'tailscaledPath']) if (remote[key] !== undefined && (typeof remote[key] !== 'string' || !remote[key].trim())) throw new Error(`managed.${key} 必须为非空路径`);
-  const identity = JSON.stringify([dataDir, nodePath, port, options.refresh !== false, eacSourceDir, options.autoInstallNode !== false, consolePort, remote]);
+  const identity = JSON.stringify([dataDir, nodePath, port, options.refresh !== false, eacSourceDir, autoInstallEac, options.autoInstallNode !== false, consolePort, remote]);
   if (instances.has(dataDir)) {
     const entry = instances.get(dataDir);
     if (entry.identity !== identity) throw new Error('同一数据目录使用了不同服务设置；重启 Magpie 后再应用配置');
@@ -87,7 +89,7 @@ export function getManagedRuntime(input = {}, options = {}) {
               }
             } catch { finish(new Error('内置服务返回了无效启动信息')); }
           });
-          processHandle.stdin.write(JSON.stringify({ dataDir, port, consolePort, ...remote, refresh: options.refresh !== false, eacSourceDir, parentPid: process.pid }) + '\n');
+          processHandle.stdin.write(JSON.stringify({ dataDir, port, consolePort, ...remote, refresh: options.refresh !== false, eacSourceDir, autoInstallEac, parentPid: process.pid }) + '\n');
         });
         state = ready;
         // Pipes carry ownership: host exit closes stdin and the child shuts down.

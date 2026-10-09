@@ -6,7 +6,7 @@ import { createEacLoginPoller } from '../../src/eac-login.js'
 import { directFetch } from '../../src/eac.js'
 
 /** 独立产品自己的 EAC 入口；插件仍走 unlockSealedLane 的宿主判定。 */
-export function createStandaloneEac({ dataDir, onSaved = () => {}, credentialOf = openSeal, fetch = directFetch }) {
+export function createStandaloneEac({ dataDir, onSaved = () => {}, credentialOf = openSeal, fetch = directFetch, setup }) {
   const file = path.join(dataDir, EAC_USER_FILE)
   const readUser = () => readEacUser(file)
   let closed = false
@@ -44,10 +44,10 @@ export function createStandaloneEac({ dataDir, onSaved = () => {}, credentialOf 
     cached: () => cached,
     async status() {
       const lane = credential()
-      if (lane === null || lane.mode !== 'worker') return { available: lane !== null, mode: lane?.mode ?? null, authorized: lane?.mode === 'direct', login: '' }
+      if (lane === null || lane.mode !== 'worker') return { available: lane !== null, mode: lane?.mode ?? null, authorized: lane?.mode === 'direct', login: '', ...setup ? { setup } : {} }
       const user = readUser()
       const started = generation
-      const base = { available: true, mode: 'worker', local: user !== null, login: user?.login ?? '', avatar: user?.avatar ?? '', savedAt: user?.savedAt ?? 0 }
+      const base = { available: true, mode: 'worker', local: user !== null, login: user?.login ?? '', avatar: user?.avatar ?? '', savedAt: user?.savedAt ?? 0, ...setup ? { setup } : {} }
       try {
         const response = await hop(`${rootOf(lane)}/auth/status`, { headers: { accept: 'application/json', ...user ? { 'x-ofm-user': user.token } : {} } })
         const data = await response.json()

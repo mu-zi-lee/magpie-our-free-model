@@ -1,4 +1,34 @@
-# Validation — 0.4.0
+# Validation — 0.5.0
+
+## Automatic EAC source — 2026-10-09
+
+- Original standalone `createStandaloneEac` calls `openSeal` directly, rather than
+  the DSH plugin's host-detection gate. The Magpie runner now downloads that
+  unchanged module, both dependencies and the MIT license from the official
+  pinned commit, verifies fixed SHA-256 hashes, and imports only the complete
+  verified set from a private runtime cache. No original material is packaged.
+- Live official downloads verified all four hashes. A real Node child started
+  through `getManagedRuntime` with default automatic setup, reached the original
+  EAC gateway's status endpoint, and returned `available: true`, `configured: true`,
+  `required: true`, `authorized: false`. The EAC model credential is absent before
+  login. Temporary test data and processes were cleaned up afterward.
+- Installer fixtures cover cache reuse offline, permissions, dependency tampering,
+  concurrent installation, checksum/size/redirect failure, staging cleanup,
+  explicit-source precedence, opt-out, and sanitizing imported module exceptions.
+- Real bundled service fixtures verify GitHub authorization collection, original
+  HMAC and per-user token forwarding, unified model discovery after login, and
+  EAC source failure without disrupting the anonymous model catalog.
+- EAC UI now shows safe source setup diagnostics instead of reporting every
+  installation failure as an unsupported runtime. Five adapted upstream files
+  have updated provenance hashes; 52 of 57 retained paths remain unchanged.
+- Node and Bun plugin hook checks pass. Full suite: **195 passed, 0 failed, 0 skipped**.
+
+No real user's GitHub login, Star action, or authorized EAC inference was performed.
+The live check confirms source installation and gateway readiness, not free quota
+or successful turns after authorization. Source installation on Windows was not
+exercised. Existing account data and local API keys are outside the package.
+
+## Previous 0.4.0 run
 
 ## Temporary Tailscale console — 2026-10-09
 

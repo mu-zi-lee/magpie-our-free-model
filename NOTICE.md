@@ -6,26 +6,21 @@ The full account-channel integration, standalone model runtime, EAC authorizatio
 statistics and local management UI are from **Ebony-Vinyl/dsh-our-free-model**:
 https://github.com/Ebony-Vinyl/dsh-our-free-model
 Pinned commit: f8974369c5904858c696b520d8b9b82ad4425f78 (2026-10-09).
-57 upstream runtime/asset/license paths are retained under vendor/ofm; 54 are
+57 upstream runtime/asset/license paths are retained under vendor/ofm; 52 are
 byte-for-byte copies. UPSTREAM.json records original and adapted hashes and the
-two omitted encrypted EAC data files. Three adaptations are documented: removing
+two omitted encrypted EAC data files. Five adaptations are documented: removing
 bundled Google OAuth defaults and the Loomy WeChat App ID, replacing vault.js with an empty stub, and adding
-an optional locally supplied EAC credential function to the standalone service.
-The generator patch is scripts/ofm-google-config-patch.mjs. These adaptations
+an original EAC credential function to the standalone service, plus safe setup diagnostics in the EAC backend and UI.
+The generator patches are scripts/ofm-google-config-patch.mjs and scripts/ofm-eac-setup-patch.mjs. These adaptations
 avoid publishing credential material and comply with repository secret scanning.
-Gemini requires user-owned OAuth configuration; Loomy WeChat QR login requires private local App ID configuration. EAC requires an explicitly
-selected local upstream source; server authorization/login/signature flow remains
-unchanged. No original vault decryption code, ciphertext or shards are distributed.
+Gemini requires user-owned OAuth configuration; Loomy WeChat QR login requires private local App ID configuration. EAC installs the pinned original source in a private runtime cache by default; an explicitly selected local source overrides it. Server authorization/login/signature flow remains unchanged. No original vault decryption code, ciphertext or shards are distributed.
 The integration uses the upstream's published standalone entry point.
 Original MIT license: vendor/ofm/LICENSE. Channel-pack attribution and MIT license:
 vendor/ofm/vendor/channel-pack/NOTICE.md and LICENSE. The channel pack's original
 upstream is iJetLi/deepseek-harness-codearts (Gitee), absorbed commit
 345f0a07b22713c0ae189ca7d8b97ec4f64626c6.
 
-Qoder's WASM runtime code is retained unchanged. Original EAC material is not
-shipped, extracted, logged, re-minted or published. If the user chooses a local
-original source, the integration uses its existing credential function solely
-inside the local service. Original GitHub/Star authorization and server checks
+Qoder's WASM runtime code is retained unchanged. Original EAC material is not shipped, logged, re-minted or published by this repository. The plugin downloads unchanged vault modules and their MIT license from the official upstream at the pinned commit, verifies pinned SHA-256 digests, and caches them privately (0700/0600). Its existing openSeal function is used only inside the local service, matching upstream standalone. Decrypted values are never persisted. The user may disable this installation with managed.autoInstallEac: false or choose their own local upstream source. Original GitHub/Star authorization and server checks
 remain in place. No personal account credentials, local API keys or data directories
 are included.
 

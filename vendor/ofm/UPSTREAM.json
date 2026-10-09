@@ -299,13 +299,25 @@
       "path": "src/vault.js",
       "originalSha256": "6f9d5dce4af5dc504991af32b46cd3b76dd0c587fcacb35cc6245a518201c021",
       "sha256": "20b8931fe990b0b8b47597784309c02e26a6771f59ae51a5f1bb9a2b1aa6f5f8",
-      "reason": "Replace the upstream vault with an empty stub; EAC material is supplied locally by the user only."
+      "reason": "Packaged vault is an empty stub; original EAC source is installed in a private runtime cache or selected locally."
     },
     {
       "path": "packages/standalone/service.mjs",
       "originalSha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3",
-      "sha256": "da1b72dc98e9da6e9faf36f0d889987fc0dd022a169e2b056bd837ae79cb8cea",
-      "reason": "Allow a user-selected local upstream EAC credential function; preserve server authorization and login flow."
+      "sha256": "dee0cb85e95a15da909e7b2ea0adebff89916b4a22b1bd333a4685cfcb8b1188",
+      "reason": "Accept an original EAC credential function and safe setup diagnostics; preserve server authorization and login flow."
+    },
+    {
+      "path": "packages/standalone/eac.mjs",
+      "originalSha256": "48ae3cf034b5601529882aa93efa42023bfe2125991a4dfef55a55b0059a45a2",
+      "sha256": "9b5a2b1920b55f19c4cd89853db476e27ff94b68988d3b43bafb356ae98c6123",
+      "reason": "Expose sanitized EAC source setup diagnostics without changing upstream authorization."
+    },
+    {
+      "path": "packages/standalone/web/channels-jv6LXryG.js",
+      "originalSha256": "27d8ecdc5bc0cf7035b8f25602ba389cf9a5813d01595e15ddf199628b724cea",
+      "sha256": "2d0c8d85872c93defb731d8dc147c0eae4880dd1d9d924cb5a4446efc20732ee",
+      "reason": "Show EAC setup errors from authenticated status instead of an unsupported-host message."
     }
   ],
   "omitted": [

@@ -19,7 +19,7 @@ export function resolveStandaloneDataDir(env = process.env, home = os.homedir())
 /** 直接创建核心和 HTTP 服务，不加载插件入口、Cordis 或 DSH 凭据。 */
 export async function startStandalone({
   dataDir = resolveStandaloneDataDir(), host = '127.0.0.1', port,
-  logger = console, refresh = true, probe, eacCredential,
+  logger = console, refresh = true, probe, eacCredential, eacSetup,
 } = {}) {
   if (!isLoopbackHost(host)) throw new TypeError('the standalone service binds a loopback address only')
   if (typeof dataDir !== 'string' || !path.isAbsolute(dataDir)) throw new TypeError('dataDir must be an absolute path')
@@ -55,7 +55,7 @@ export async function startStandalone({
     settings.flush()
     if (settings.writeFailed) throw new Error('could not persist the standalone API key')
     eac = createStandaloneEac({
-      dataDir, credentialOf: eacCredential,
+      dataDir, credentialOf: eacCredential, setup: eacSetup,
       onSaved: () => { void runtime?.refreshSealedLane().catch(error => logger.warn?.(`EAC 清单刷新失败：${error.message}`)) },
     })
     runtime = createModelRuntime({

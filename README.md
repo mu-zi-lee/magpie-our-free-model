@@ -5,21 +5,21 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.4.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名渠道与账号渠道。
+版本 **0.5.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
 插件图标使用 `assets/icon.png` 的无损 WebP 副本（像素和尺寸相同，满足 Magpie 的 1 MB 限制），随包加载，无需联网获取图标。
 原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
-随包保存在 `vendor/ofm/`。57 个保留文件中 54 个保持原始字节；3 个有明确适配改动：
-移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加可选本机 EAC 来源入口。
+随包保存在 `vendor/ofm/`。57 个保留文件中 52 个保持原始字节；5 个有明确适配改动：
+移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加 EAC 来源入口及安装诊断。
 两个 EAC 加密凭据数据文件不随包分发。原始 SHA-256、改动摘要和省略清单见 `vendor/ofm/UPSTREAM.json`。
-运行时不下载原项目、不执行远程安装脚本、不需要另外安装 DSH。
+首次启用时从原项目下载固定版本的 EAC 来源模块与依赖，校验后缓存到本机；不执行远程安装脚本，不需要另外安装 DSH。
 
 ## 一体化安装与使用（推荐）
 
 1. 从本仓库 Code → Download ZIP 解压，或执行下方 `git clone`。把项目目录放到固定位置。
 2. 在 Magpie 插件页面添加该目录，启用插件；不需要 `npm install` 或编译。
-3. 在 **Our Free Model** 供应商点击 **启用全部渠道 / 打开账号管理控制台**。
+3. 在 **Our Free Model** 供应商点击 **启用模型 / 打开账号管理控制台**。
    插件自动启动随包携带的服务；桌面打开本机控制台，SSH/无桌面 Linux 默认提供 Tailscale 临时 HTTPS 控制台；无需填写本地 API Key。
-4. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 先配置下方的本机原项目来源，再在控制台完成原项目的 GitHub 授权；
+4. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 来源会自动安装，在控制台完成原项目的 GitHub 授权及 Star 校验后使用；
    账号渠道在控制台分别登录，完成后回 Magpie 刷新模型，并为 Agent 选用 `our-free-model` 下的模型。
 
 ```sh
@@ -41,7 +41,7 @@ magpie plugin add ./magpie-our-free-model
 | 十三个账号渠道的实现 | CodeArts、CodeBuddy、WorkBuddy 国际版、LobsterAI、Qoder、Qoder 中国版、TRAE、Cline、Loomy、Raccoon、MiniMax Code、ZCode、Gemini；**Gemini 需额外配置自有 OAuth 客户端，Loomy 微信扫码需额外配置 App ID** |
 | 渠道登录、账号池、轮换和续期 | 原项目渠道后端与控制台；账号凭据只保存在本机 |
 | 签到/领取积分、模型开关、积分锁定、账本与备份 | 原控制台与渠道实现；供应商停用及模型停用会阻止实际调用 |
-| EAC 登录、Star 校验、资源池 | 可选本机原项目来源及原服务端授权；凭据材料不公开打包，不修改服务端校验逻辑 |
+| EAC 登录、Star 校验、资源池 | 自动安装原项目固定版本来源（也可指定本机目录），沿用原服务端授权；不修改服务端校验逻辑 |
 | 模型上下文、图片、思考档位 | 根据真实运行目录映射到 Magpie，保留上游档位 ID |
 | 用量、请求日志、服务设置 | 本机控制台；Magpie 也记录经过自身网关的请求用量 |
 | Chat Completions / Responses | 内置服务支持两种；Magpie 插件使用 Chat 接口，Magpie 负责其他客户端协议转换 |
@@ -170,21 +170,37 @@ GitHub 的仓库密钥检查拦截了上游渠道包中的固定 Google OAuth �
 也可在启动 Magpie 前设置 `CMDC_PAK_GOOGLE_CLIENT_ID` 和 `CMDC_PAK_GOOGLE_CLIENT_SECRET`。
 更换 OAuth 客户端后需要重新登录 Gemini；旧客户端签发的 refresh token 通常不能跨客户端使用。
 
-### EAC 的本机来源（可选）
+### EAC 自动接入
 
-公开仓库不会携带原项目的 EAC 加密凭据及解封材料。
-如果你已合法获取原项目源码，可在插件选项中指定其本机目录：
+默认 `managed.autoInstallEac: true`。首次启动自动从原项目的 **raw.githubusercontent.com**
+下载固定提交 `f8974369c5904858c696b520d8b9b82ad4425f78` 的 `src/vault.js`、两份数据依赖及 MIT 许可，
+按代码中固定的 SHA-256 校验完整文件集合后，保存到本机数据目录的 `runtime/eac-<提交>/`。
+原文件保持原样；类 Unix 系统目录权限为 0700、文件为 0600。每次启动复核缓存，之后可离线复用。
+这些原始来源文件不放进本插件的公开仓库或发布包，解封结果不写入磁盘、日志或网页。
+安装不需要 root、git、DSH 或手动填写路径，Linux/macOS/Windows 使用同一下载逻辑。
+
+打开控制台 **EAC 协付渠道 → 使用 GitHub 登录**，在原项目授权页完成 GitHub 登录与 Star 校验。
+授权成功后原服务自动刷新 EAC 清单；回 Magpie 刷新模型后即可选用。
+**安装来源不等于已授权**；授权、Star 校验、请求签名、资源池与实际模型可用性均由原项目网关决定。
+本插件沿用原项目独立服务的 `openSeal` 入口，不伪装 DSH 宿主，也不绕过服务端检查。
+Tailscale 仅提供控制台入口，不影响原网关的浏览器授权流程。
+
+服务器需能访问 raw.githubusercontent.com 及原 EAC 网关。下载有总计 20 秒的超时和大小限制，
+来源安装失败会在 EAC 页面显示原因，匿名/Kilo 与账号渠道继续运行。
+修复网络或数据目录权限后重启 Magpie 重试；不修改远端地址或跟随上游 main 自动执行新代码。
+固定来源版本被网关撤销或不再兼容时，需要更新本插件或明确选用新版本来源。
+可设 `managed.autoInstallEac: false` 关闭自动安装及自动来源使用。
+
+已有完整原项目源码时，仍可显式指定本机目录，优先于自动安装：
 
 ```json
 { "managed": { "eacSourceDir": "/absolute/path/to/dsh-our-free-model" } }
 ```
 
-该目录需要保留完整原项目的 `src/vault.js` 及其数据依赖。只加载你信任的、已获授权的原项目版本；
-插件会执行这份本机模块来使用原有 EAC 来源，来源目录需保持固定。
-配置后重启 Magpie，在控制台完成 GitHub 授权与原项目要求的 Star 校验。
-无需运行原项目独立服务，也不需要 DSH。未配置时 EAC 不可用，其余渠道不受影响。
-原项目地址仍是 [Ebony-Vinyl/dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)。
-插件不会自动下载或公开上传这部分材料，也不会显示其明文凭据。
+该目录需要完整原项目的 `src/vault.js` 及数据依赖，只使用你信任的原项目版本。
+插件会执行这份本机模块；目录需保持固定，配置后重启 Magpie，再完成原项目授权。
+原项目地址是 [Ebony-Vinyl/dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)。
+真实用户 GitHub 登录及授权后的 EAC 推理尚未实机验收。
 
 ### 配置、数据与停止
 

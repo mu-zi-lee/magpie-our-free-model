@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline';
 import { startStandalone } from '../vendor/ofm/packages/standalone/service.mjs';
 import { effortsFor } from '../vendor/ofm/src/effort.js';
 import { createConsoleHandoff } from './managed-console.mjs';
-import { pathToFileURL } from 'node:url';
+import { loadEacSource } from './eac-source.mjs';
 import { createTailscaleConsole, remoteByDefault } from './tailscale-console.mjs';
 
 let service;
@@ -35,12 +35,7 @@ lines.once('line', async line => {
   try {
     const settings = JSON.parse(line);
     runnerSettings = settings;
-    let eacCredential;
-    if (settings.eacSourceDir) {
-      const original = await import(pathToFileURL(path.join(settings.eacSourceDir, 'src/vault.js')).href);
-      if (typeof original.openSeal !== 'function') throw new Error('指定的 EAC 来源不是受支持的原项目目录');
-      eacCredential = original.openSeal;
-    }
+    const eacSource = await loadEacSource(settings);
     const googleFile = path.join(settings.dataDir, 'gemini-oauth.json');
     if (fs.existsSync(googleFile)) {
       const google = JSON.parse(fs.readFileSync(googleFile, 'utf8'));
@@ -67,7 +62,8 @@ lines.once('line', async line => {
       }
     }
     service = await startStandalone({ dataDir: settings.dataDir, port: settings.port,
-      refresh: settings.refresh !== false, eacCredential, logger: { info() {}, warn() {}, error() {} } });
+      refresh: settings.refresh !== false, eacCredential: eacSource.credentialOf, eacSetup: eacSource.setup,
+      logger: { info() {}, warn() {}, error() {} } });
     consoleHandoff = await createConsoleHandoff(service, settings.consolePort);
     if (process.stdin.readableEnded) return stop();
     process.stdout.write(JSON.stringify({ type: 'ready', url: service.url,

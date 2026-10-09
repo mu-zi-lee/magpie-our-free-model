@@ -59,6 +59,7 @@ test('managed lifecycle validates settings, prevents conflicting instances and d
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-config-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: -1 }), /port/);
+  assert.throws(() => getManagedRuntime({ directory: dir }, { autoInstallEac: 'yes' }), /autoInstallEac/);
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: 18900, consolePort: 18900 }), /consolePort/);
   const runtime = getManagedRuntime({ directory: dir }, { nodePath: path.join(dir, 'missing-node') });
   assert.equal(getManagedRuntime({ directory: dir }, { nodePath: path.join(dir, 'missing-node') }), runtime);
@@ -163,6 +164,19 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(10000) });
     return { status: response.status, body: await response.json() };
   };
+  await t.test('failed EAC source leaves the real service and free model catalog running', async () => {
+    const isolated = getManagedRuntime({}, { dataDir: path.join(dir, 'eac-failure-data'), port: 0,
+      nodePath: wrapper, refresh: false, eacSourceDir: path.join(dir, 'missing-source'), consoleAccess: 'local' });
+    try {
+      const connection = await isolated.connection();
+      const status = await fetch(connection.base.replace(/\/v1$/, '') + '/api/management/eac/status',
+        { headers: { authorization: `Bearer ${connection.key}` } }).then(response => response.json());
+      assert.equal(status.available, false);
+      assert.equal(status.setup.state, 'failed');
+      assert.match(status.setup.message, /本机来源加载失败/);
+      assert.ok((await isolated.command('models')).some(model => model.id === 'mimo-v2.6-flash-free'));
+    } finally { await isolated.close(); }
+  });
   await t.test('one-use console login gives a real management cookie and can be reopened', async () => {
     const handoff = await fetch(login.url, { redirect: 'manual' });
     assert.equal(handoff.status, 303);
@@ -232,6 +246,11 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     assert.equal(requests.findLast(req => req.pathname.endsWith('/chat/completions')).body.max_tokens, 4096);
   });
   await t.test('EAC preserves upstream authorization and updates the unified model catalog', async () => {
+    const status = await api('/api/management/eac/status');
+    assert.equal(status.body.available, true);
+    assert.equal(status.body.authorized, false);
+    assert.equal(status.body.setup.source, 'local');
+    assert.equal((await plugin.provider.models(provider, { auth }))['fixture-eac-model'], undefined);
     const start = await api('/api/management/eac/login/start', {});
     assert.ok(start.body.link, JSON.stringify(start));
     const poll = await api(`/api/management/eac/login/poll?link=${start.body.link}`);
