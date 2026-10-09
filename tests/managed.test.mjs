@@ -9,6 +9,7 @@ import { createServer, request as httpRequest } from 'node:http';
 import { once } from 'node:events';
 import { createManagedPlugin, managedModel } from '../src/managed.mjs';
 import { getManagedRuntime } from '../src/managed-runtime.mjs';
+import uninstall from '../uninstall.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -165,7 +166,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     return { status: response.status, body: await response.json() };
   };
   await t.test('failed EAC source leaves the real service and free model catalog running', async () => {
-    const isolated = getManagedRuntime({}, { dataDir: path.join(dir, 'eac-failure-data'), port: 0,
+    const isolated = getManagedRuntime({ directory: dir }, { dataDir: path.join(dir, 'eac-failure-data'), port: 0,
       nodePath: wrapper, refresh: false, eacSourceDir: path.join(dir, 'missing-source'), consoleAccess: 'local' });
     try {
       const connection = await isolated.connection();
@@ -296,5 +297,17 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     assert.ok(JSON.parse(fs.readFileSync(path.join(dataDir, 'channel-credentials.json'))).BUDDY_FIXTURE);
     await runtime.close();
     assert.equal(fs.existsSync(path.join(dataDir, 'service.lock')), false);
+  });
+  await t.test('uninstall disposes the live service and removes all registered plugin data', async () => {
+    await runtime.ensure();
+    const current = await runtime.connection();
+    await plugin.lifecycle.dispose();
+    await uninstall(input, { managed: options });
+    assert.equal(fs.existsSync(dataDir), false);
+    assert.equal(fs.existsSync(path.join(dir, 'eac-failure-data')), false);
+    assert.equal(fs.existsSync(path.join(dir, 'our-free-model-owned.json')), false);
+    assert.equal(fs.existsSync(path.join(eacSourceDir, 'src/vault.js')), true);
+    await assert.rejects(runtime.ensure(), /卸载/);
+    await assert.rejects(fetch(current.base + '/models', { signal: AbortSignal.timeout(1000) }));
   });
 });

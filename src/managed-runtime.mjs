@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
 import { resolveNodeRuntime } from './node-runtime.mjs';
+import { registerInstallation, withInstallationLock, validateDataDir } from './installation-state.mjs';
 
 const instances = new Map();
 const runner = fileURLToPath(new URL('./managed-runner.mjs', import.meta.url));
@@ -21,6 +22,7 @@ const environment = () => {
 export function getManagedRuntime(input = {}, options = {}) {
   const directory = input.directory || input.worktree || path.join(os.homedir(), '.config', 'magpie');
   const dataDir = path.resolve(options.dataDir || path.join(directory, 'our-free-model'));
+  validateDataDir(dataDir, directory);
   const nodePath = options.nodePath;
   const port = options.port;
   if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) throw new Error('managed.port 必须为 0 到 65535 的整数');
@@ -44,59 +46,68 @@ export function getManagedRuntime(input = {}, options = {}) {
   let pending;
   let closing;
   let sequence = 0;
+  let disposed = false;
   const calls = new Map();
   const runtime = {
     dataDir, identity,
     async ensure() {
-      if (closing) { await closing; closing = undefined; }
+      if (disposed) throw new Error('本插件正在卸载，不能重新启动服务');
+      if (closing) {
+        await closing; closing = undefined;
+        if (disposed) throw new Error('本插件正在卸载，不能重新启动服务');
+      }
       if (state && child?.exitCode === null && !child.killed) return state;
       if (pending) return pending;
       pending = (async () => {
-        const resolvedNode = await resolveNodeRuntime(options, dataDir, environment());
-        const processHandle = spawn(resolvedNode, [runner], { env: environment(), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
-        child = processHandle;
-        processHandle.stdin.on('error', () => {});
-        const exit = new Promise(resolve => processHandle.once('exit', resolve));
-        processHandle.once('exit', () => {
-          if (child === processHandle) state = undefined;
-          for (const call of calls.values()) call.reject(new Error('内置服务已退出'));
-          calls.clear();
-        });
-        runtime.exited = exit;
-        const ready = await new Promise((resolve, reject) => {
-          const lines = createInterface({ input: processHandle.stdout });
-          const timer = setTimeout(() => { processHandle.kill('SIGKILL'); finish(new Error('内置服务启动超时')); }, 45000);
-          const finish = (error, value) => {
-            clearTimeout(timer);
-            if (error) lines.close();
-            processHandle.off('error', onError);
-            processHandle.off('exit', onExit);
-            if (error) { processHandle.stdin.end(); reject(error); } else resolve(value);
-          };
-          const onError = () => finish(new Error('无法启动 Node 内置服务'));
-          const onExit = () => finish(new Error('内置服务在启动时退出'));
-          processHandle.once('error', onError);
-          processHandle.once('exit', onExit);
-          lines.on('line', line => {
-            try {
-              const reply = JSON.parse(line);
-              if (reply.type === 'ready') finish(null, reply);
-              if (reply.type === 'error') finish(new Error(reply.message));
-              if (reply.id && calls.has(reply.id)) {
-                const call = calls.get(reply.id);
-                calls.delete(reply.id);
-                if (reply.error) call.reject(new Error(reply.error)); else call.resolve(reply.value);
-              }
-            } catch { finish(new Error('内置服务返回了无效启动信息')); }
+        await registerInstallation(directory, dataDir);
+        return withInstallationLock(dataDir, async () => {
+          if (disposed) throw new Error('本插件正在卸载，不能重新启动服务');
+          const resolvedNode = await resolveNodeRuntime(options, dataDir, environment());
+          const processHandle = spawn(resolvedNode, [runner], { env: environment(), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
+          child = processHandle;
+          processHandle.stdin.on('error', () => {});
+          const exit = new Promise(resolve => processHandle.once('exit', resolve));
+          processHandle.once('exit', () => {
+            if (child === processHandle) state = undefined;
+            for (const call of calls.values()) call.reject(new Error('内置服务已退出'));
+            calls.clear();
           });
-          processHandle.stdin.write(JSON.stringify({ dataDir, port, consolePort, ...remote, refresh: options.refresh !== false, eacSourceDir, autoInstallEac, parentPid: process.pid }) + '\n');
+          runtime.exited = exit;
+          const ready = await new Promise((resolve, reject) => {
+            const lines = createInterface({ input: processHandle.stdout });
+            const timer = setTimeout(() => { processHandle.kill('SIGKILL'); finish(new Error('内置服务启动超时')); }, 45000);
+            const finish = (error, value) => {
+              clearTimeout(timer);
+              if (error) lines.close();
+              processHandle.off('error', onError);
+              processHandle.off('exit', onExit);
+              if (error) { processHandle.stdin.end(); reject(error); } else resolve(value);
+            };
+            const onError = () => finish(new Error('无法启动 Node 内置服务'));
+            const onExit = () => finish(new Error('内置服务在启动时退出'));
+            processHandle.once('error', onError);
+            processHandle.once('exit', onExit);
+            lines.on('line', line => {
+              try {
+                const reply = JSON.parse(line);
+                if (reply.type === 'ready') finish(null, reply);
+                if (reply.type === 'error') finish(new Error(reply.message));
+                if (reply.id && calls.has(reply.id)) {
+                  const call = calls.get(reply.id);
+                  calls.delete(reply.id);
+                  if (reply.error) call.reject(new Error(reply.error)); else call.resolve(reply.value);
+                }
+              } catch { finish(new Error('内置服务返回了无效启动信息')); }
+            });
+            processHandle.stdin.write(JSON.stringify({ dataDir, port, consolePort, ...remote, refresh: options.refresh !== false, eacSourceDir, autoInstallEac, parentPid: process.pid }) + '\n');
+          });
+          state = ready;
+          // Pipes carry ownership: host exit closes stdin and the child shuts down.
+          processHandle.unref();
+          processHandle.stdin.unref?.();
+          processHandle.stdout.unref?.();
+          return state;
         });
-        state = ready;
-        // Pipes carry ownership: host exit closes stdin and the child shuts down.
-        processHandle.unref();
-        processHandle.stdin.unref?.();
-        processHandle.stdout.unref?.();
-        return state;
       })().finally(() => { pending = undefined; });
       return pending;
     },
@@ -133,6 +144,7 @@ export function getManagedRuntime(input = {}, options = {}) {
       })();
       return closing;
     },
+    async dispose() { disposed = true; await runtime.close(); },
   };
   instances.set(dataDir, runtime);
   return runtime;

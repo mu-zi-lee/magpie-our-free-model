@@ -65,6 +65,7 @@ export async function createManagedPlugin(input, options = {}) {
     }
   }
   return {
+    lifecycle: { dispose: () => runtime.dispose() },
     async config(cfg) {
       cfg.provider ??= {};
       cfg.provider[PROVIDER] ??= { name: 'Our Free Model', npm: SDK, models: {} };

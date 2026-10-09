@@ -1,4 +1,50 @@
-# Validation — 0.5.0
+# Validation — 0.6.0
+
+## Automatic uninstall cleanup — 2026-10-09
+
+- Plugin `magpie.uninstall` declares a standalone cleanup module. The paired
+  Magpie change runs it before removing the package/list entry, including when
+  disabled, and calls only this plugin's live `lifecycle.dispose` hook first.
+  Cleanup is bounded/cancellable. A failure keeps the entry for retry.
+- Ownership records retain every data directory used since 0.6.0. Cleanup covers
+  automatic Node/Tailscale/EAC downloads and incomplete stages, channel account
+  storage, runtime settings/cache/statistics, OAuth configuration and private
+  temporary console directories. Exact OFM auth ids and their `#account` suffixes
+  are removed under Magpie's auth lock; other providers remain.
+- Filesystem fixtures cover history, disabled mode, legacy data adoption, partial
+  journal retry, restart after partial cleanup, malformed state/auth, live/unknown
+  service locks, expired empty Magpie auth locks, protected paths and replaced
+  symlinks. Existing binaries, external EAC source and unrelated custom files
+  remain. Repeated uninstall succeeds.
+- Real bundled Node service is disposed, its HTTP endpoint closes, registered
+  current/history data disappears, and the disposed runtime cannot restart.
+- A real Unix socket binds inside a data path longer than 108 bytes through a
+  shared private working directory and relative socket name; console shutdown
+  removes that directory.
+- Modified Magpie CLI + real Bun completes local package add, options, login,
+  model listing, loopback fixture inference and `plugin rm`. Service data,
+  ownership registry and OFM auth are gone; the pre-existing Node wrapper remains.
+  This ran in isolated XDG config/cache paths on macOS arm64.
+- Node and Bun contract checks pass; `npm test`: **207 passed, 0 failed, 0 skipped**.
+- Magpie native, Linux nogui and Windows builds and vet checks pass. New removal
+  tests pass with real Bun; Go source formatting produces no changes.
+- `go test -tags nogui ./...` passes under a temporary HOME with pinned Go caches.
+- Targeted removal tests also pass with `-race`; paired host implementation is
+  [Magpie PR #1](https://github.com/mu-zi-lee/magpie/pull/1), commit
+  `d25453b6d55dd7501c21b408e692d65c0fa021da`.
+- Replacing Magpie's removal code with its original implementation makes
+  `TestRemoveDisabledPluginRunsDeclaredCleanupBeforeRemovingEntry` fail with
+  `uninstall left downloaded runtime`. Restoring the change passes.
+
+Uninstall requires the paired Magpie implementation. Updating only this plugin
+on a Magpie version without `magpie.uninstall` does not enable automatic cleanup.
+Local-folder source checkouts and shared Magpie Bun/caches remain user/host owned.
+Pre-0.6 paths that are no longer configured cannot be reconstructed. Other live
+Magpie instances must stop before deleting a shared data directory. There was no
+live-account deletion, real public Tailscale Funnel or Linux/Windows execution;
+cross-platform builds and vet are compilation checks only.
+
+## Previous 0.5.0 validation record
 
 ## Automatic EAC source — 2026-10-09
 
@@ -136,7 +182,7 @@ integration test's POSIX Node wrapper skips on Windows; the other unit tests
 still run there. No Node binary is distributed. The hosted management UI and its
 backend are retained upstream code, not a newly audited implementation.
 
-Magpie does not call custom tool/event/disposal hooks. Models and requests run
+The original Magpie used for this historical record did not call custom tool/event/disposal hooks. Models and requests run
 through Magpie; management stays in a loopback browser console. Signing out of
 the Magpie provider does not itself stop the shared child; exiting its host does.
 DSH announcements, plugin self-update/hot reload, LAN relay and DSH Agent resume

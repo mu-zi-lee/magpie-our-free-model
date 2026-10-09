@@ -52,17 +52,19 @@ test('missing Tailscale downloads and verifies a matched pair, caches it and rej
   assert.deepEqual(fs.readdirSync(path.join(dir, 'bad/runtime')), []);
 });
 
-function fixture(t, isolated, state = 'Running', sessionMs, approval = false) {
+function fixture(t, isolated, state = 'Running', sessionMs, approval = false, deepDataDir = false) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-ts-cli-'));
   const stateFile = path.join(dir, 'state.json'); const logFile = path.join(dir, 'commands.jsonl');
   fs.writeFileSync(stateFile, JSON.stringify({ BackendState: state, approval, Self: { DNSName: 'fixture.tailnet.ts.net.' } }));
   const script = path.join(dir, 'cli.mjs');
-  fs.writeFileSync(script, `import fs from 'node:fs';
+  fs.writeFileSync(script, `import fs from 'node:fs'; import net from 'node:net';
 const stateFile = ${JSON.stringify(stateFile)}, logFile = ${JSON.stringify(logFile)};
 const args = process.argv.slice(2); fs.appendFileSync(logFile, JSON.stringify(args)+'\\n');
 const cmd = args.filter(x=>!x.startsWith('--socket='));
+const socket = args.find(x=>x.startsWith('--socket='))?.slice('--socket='.length);
+if(cmd.some(x=>x.startsWith('--tun='))) net.createServer().listen(socket);
 const read=()=>JSON.parse(fs.readFileSync(stateFile,'utf8'));
-if(cmd[0]==='status') { const s=read(); console.log(JSON.stringify(s)); process.exit(s.BackendState==='Running'?0:1); }
+if(cmd[0]==='status') { if(socket && !fs.existsSync(socket)) process.exit(1); const s=read(); console.log(JSON.stringify(s)); process.exit(s.BackendState==='Running'?0:1); }
 if(cmd[0]==='funnel' && cmd[1]==='status') { console.log(JSON.stringify({TCP:{'443':{HTTPS:true}}})); process.exit(0); }
 if(cmd[0]==='logout') process.exit(0);
 if(cmd[0]==='up') { const s=read(); s.AuthURL='https://login.tailscale.com/a/fixture'; fs.writeFileSync(stateFile,JSON.stringify(s)); }
@@ -76,7 +78,8 @@ setInterval(()=>{},1000); process.once('SIGTERM',()=>process.exit(0));
   const cli = path.join(dir, 'tailscale');
   fs.writeFileSync(cli, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(script)} "$@"\n`, { mode: 0o700 });
   let origin, closed = 0;
-  const manager = createTailscaleConsole({}, {}, dir, { sessionMs, resolve: async () => ({ cli, daemon: cli, isolated }),
+  const dataDir = deepDataDir ? path.join(dir, 'nested-'.repeat(25)) : dir;
+  const manager = createTailscaleConsole({}, {}, dataDir, { sessionMs, resolve: async () => ({ cli, daemon: cli, isolated }),
     createGateway: async () => ({ target: 'http://127.0.0.1:32100', setOrigin: value => { origin = value; }, ticket: () => `${origin}/open/fixture`, close: async () => { closed++; } }) });
   t.after(async () => { await manager.close(); fs.rmSync(dir, { recursive: true, force: true }); });
   return { manager, stateFile, log: () => fs.readFileSync(logFile, 'utf8').trim().split('\n').map(x => JSON.parse(x)), closed: () => closed };
@@ -100,6 +103,9 @@ test('isolated daemon returns browser authorization, then opens Funnel and logs 
   await f.manager.close();
   const log = f.log();
   assert.ok(log.some(args => args.includes('--state=mem:') && args.includes('--tun=userspace-networking') && args.some(x => x.startsWith('--statedir='))));
+  const directory = log.find(args => args.some(arg => arg.startsWith('--statedir='))).find(arg => arg.startsWith('--statedir=')).slice('--statedir='.length);
+  assert.equal(path.basename(path.dirname(directory)), 'temporary');
+  assert.equal(fs.existsSync(directory), false);
   assert.ok(log.some(args => args.includes('logout') && args.some(x => x.startsWith('--socket='))));
   await assert.rejects(f.manager.open(), /已关闭/);
 });
@@ -109,6 +115,16 @@ test('deadline shuts the gateway and Funnel down without extending on repeated o
   await f.manager.open(); await f.manager.open();
   await until(() => f.manager.closed);
   await f.manager.close(); assert.equal(f.closed(), 1);
+});
+
+test('private socket binds under a long data directory and all workers share its relative path', { skip: process.platform === 'win32' }, async t => {
+  const f = fixture(t, true, 'Running', undefined, false, true);
+  assert.equal((await f.manager.open()).setup, false);
+  await f.manager.close();
+  const log = f.log();
+  const daemon = log.find(args => args.some(arg => arg.startsWith('--statedir=')));
+  assert.ok(daemon.find(arg => arg.startsWith('--statedir=')).length > 108);
+  for (const args of log) assert.ok(args.includes('--socket=tailscaled.sock'));
 });
 
 test('Funnel policy authorization may exit the CLI; the next click resumes without closing the node', { skip: process.platform === 'win32' }, async t => {

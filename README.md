@@ -5,7 +5,7 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.5.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
+版本 **0.6.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
 插件图标使用 `assets/icon.png` 的无损 WebP 副本（像素和尺寸相同，满足 Magpie 的 1 MB 限制），随包加载，无需联网获取图标。
 原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
 随包保存在 `vendor/ofm/`。57 个保留文件中 52 个保持原始字节；5 个有明确适配改动：
@@ -74,7 +74,29 @@ Alpine 自动安装目前支持 x64。Windows/macOS 尚未实机验收。
 ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录。
 升级后主入口不再注册 `our-free-zen`、`our-free-kilo`、`our-free-local`；它们原有登录数据不会被插件删除。
 若 Agent 仍选用了这些旧 ID，请改选 **Our Free Model** 下的模型。
-若界面仍保留旧行，先重载插件；必要时移除旧插件条目，再添加同一目录。
+若界面仍保留旧行，请重载插件或重启 Magpie。新版卸载会删除账号数据，更新时请保留安装条目。
+
+### 卸载与自动清理
+
+**需要支持 `package.json` 中 `magpie.uninstall` 回调的 Magpie。** 配套实现见 [Magpie PR #1](https://github.com/mu-zi-lee/magpie/pull/1)，对应分支 `codex/plugin-uninstall-cleanup`；
+原有 Magpie 仅移除插件条目并跳过包脚本，单独更新插件不能让旧宿主自动清理。
+
+使用支持回调的 Magpie，在插件页面点击卸载，或运行 `magpie plugin rm <安装路径或包名>`，会先停止该插件的服务与临时 Tailscale 控制台，再删除：
+
+- 本插件自动下载的 Node、Tailscale、EAC 来源及未完成的下载目录。
+- 设置、模型缓存、统计、渠道账号、EAC 登录、Gemini OAuth 和 Loomy 配置、临时文件。
+- 本插件在 Magpie 中的统一供应商及旧兼容供应商登录记录。
+- 0.6.0 起登记过的历史 `managed.dataDir`，即使后来改了路径或停用了插件。
+
+首次使用会在 Magpie 配置目录保存清理登记，并在专用数据目录写入归属标记；卸载成功后这些登记也会删除。
+升级前的旧版本没有历史目录登记，卸载时只能识别当前配置指向的旧 OFM 数据目录。
+系统已有 Node/Tailscale、自行指定的外部 EAC 源码、其他供应商账号，以及自定义目录中的无关文件会保留。
+路径安装的源码目录由用户管理，Magpie 保留该目录；包管理器安装的插件包由 Magpie 移除。
+共享的 Magpie Bun 和缓存由 Magpie 管理，不属于本插件的下载。
+
+清理失败会保留插件安装条目供重试，可能已经清理的文件不会恢复。
+若另一个 Magpie 实例仍在使用同一数据目录，请关闭它后重试。
+普通停用、退出、重启和升级保留账号与运行环境；只有卸载执行清理。
 
 ### 服务器部署与浏览器控制台
 

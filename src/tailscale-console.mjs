@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn, execFile } from 'node:child_process';
@@ -38,10 +37,12 @@ export function createTailscaleConsole(service, options, dataDir, dependencies =
   let disposed = false;
   let publicOrigin;
   let port;
-  const prefixes = () => binaries.isolated ? [`--socket=${path.join(socketDir, 'tailscaled.sock')}`] : [];
+  // A relative socket inside our private working directory avoids Unix socket
+  // path limits when the configured plugin data directory has a long name.
+  const prefixes = () => binaries.isolated ? ['--socket=tailscaled.sock'] : [];
   const cli = async args => {
     try {
-      const { stdout } = await run(binaries.cli, [...prefixes(), ...args], { timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true });
+      const { stdout } = await run(binaries.cli, [...prefixes(), ...args], { cwd: socketDir, timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true });
       return stdout;
     } catch (error) {
       // NeedsLogin can be a nonzero exit with a valid JSON status document.
@@ -53,7 +54,7 @@ export function createTailscaleConsole(service, options, dataDir, dependencies =
   };
   const alive = child => child && child.exitCode === null && child.signalCode === null && !child.failure;
   const start = (binary, args) => {
-    const child = launch(process.execPath, [supervisor, String(process.pid), binary, ...args], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
+    const child = launch(process.execPath, [supervisor, String(process.pid), binary, ...args], { cwd: socketDir, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
       env: { ...process.env, TS_NO_LOGS_NO_SUPPORT: 'true' } });
     child.output = '';
     const collect = chunk => { child.output = (child.output + chunk.toString()).slice(-16384); };
@@ -78,14 +79,19 @@ export function createTailscaleConsole(service, options, dataDir, dependencies =
       opening = (async () => {
         if (!init) init = (async () => {
           binaries = await resolve(options, dataDir, dependencies);
+          for (const key of ['cli', 'daemon']) {
+            if (binaries[key] && !path.isAbsolute(binaries[key]) && (binaries[key].includes('/') || binaries[key].includes('\\'))) binaries[key] = path.resolve(binaries[key]);
+          }
           checkOpen();
           expiry = setTimeout(() => { void manager.close(); }, dependencies.sessionMs ?? SESSION_MS); expiry.unref?.();
           if (binaries.isolated) {
-            socketDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ofm-ts-'));
+            const temporary = path.join(dataDir, 'temporary');
+            await fs.promises.mkdir(temporary, { recursive: true, mode: 0o700 });
+            socketDir = await fs.promises.mkdtemp(path.join(temporary, 'tailscale-'));
             if (disposed) await fs.promises.rm(socketDir, { recursive: true, force: true });
             checkOpen();
             daemon = start(binaries.daemon, ['--tun=userspace-networking', '--state=mem:',
-              `--statedir=${socketDir}`, `--socket=${path.join(socketDir, 'tailscaled.sock')}`, '--port=0']);
+              `--statedir=${socketDir}`, ...prefixes(), '--port=0']);
             daemon.once('close', () => { if (!disposed) void manager.close(); });
             let ready = false;
             for (let i = 0; i < 30; i++) {

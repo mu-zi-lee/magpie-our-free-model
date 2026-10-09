@@ -50,7 +50,7 @@ try {
   await run(['plugin', 'add', project]);
   await run(['plugin', 'options', project, JSON.stringify({
     managed: { dataDir, nodePath, refresh: false, consoleAccess: 'local', autoInstallEac: false } })]);
-  const login = await run(['plugin', 'login', 'our-free-model']);
+  const login = await run(['plugin', 'login', 'our-free-model'], '1\n\n');
   console.log(login.out.trim());
   const { out } = await run(['plugin', '--json']);
   const listing = JSON.parse(out);
@@ -73,6 +73,14 @@ try {
   }
   assert.equal(fs.existsSync(path.join(dataDir, 'service.lock')), false);
   console.log('Child service exits with the host; no lock or background service remains.');
+  await run(['plugin', 'rm', project]);
+  assert.equal(fs.existsSync(dataDir), false, 'uninstall must remove registered service data');
+  assert.equal(fs.existsSync(nodePath), true, 'pre-existing Node must remain');
+  const configDir = path.join(env.XDG_CONFIG_HOME, 'magpie');
+  assert.equal(fs.existsSync(path.join(configDir, 'our-free-model-owned.json')), false);
+  const authFile = path.join(configDir, 'plugin-auth.json');
+  if (fs.existsSync(authFile)) assert.equal(Object.keys(JSON.parse(fs.readFileSync(authFile))).some(key => key === 'our-free-model' || key.startsWith('our-free-model#')), false);
+  console.log('Real Magpie uninstall: service data, installation registry and OFM auth removed; existing Node preserved.');
 } finally {
   upstream.closeAllConnections(); await new Promise(resolve => upstream.close(resolve));
   fs.rmSync(scratch, { recursive: true, force: true });

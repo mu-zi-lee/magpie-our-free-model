@@ -1,6 +1,6 @@
 {
   "name": "magpie-our-free-model",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Our Free Model for Magpie: free pools, automatic EAC setup, account management and temporary Tailscale console",
   "type": "module",
   "main": "./index.mjs",
@@ -11,6 +11,7 @@
   },
   "files": [
     "index.mjs",
+    "uninstall.mjs",
     "compatibility.mjs",
     "src",
     "assets",
@@ -43,7 +44,8 @@
   },
   "magpie": {
     "icon": "https://raw.githubusercontent.com/mu-zi-lee/magpie-our-free-model/main/assets/icon.webp",
-    "maxConcurrency": 2
+    "maxConcurrency": 2,
+    "uninstall": "./uninstall.mjs"
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs vendor/zen-free/*.test.mjs",
