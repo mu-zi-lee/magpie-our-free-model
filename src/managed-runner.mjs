@@ -6,19 +6,25 @@ import { startStandalone } from '../vendor/ofm/packages/standalone/service.mjs';
 import { effortsFor } from '../vendor/ofm/src/effort.js';
 import { createConsoleHandoff } from './managed-console.mjs';
 import { pathToFileURL } from 'node:url';
+import { createTailscaleConsole, remoteByDefault } from './tailscale-console.mjs';
 
 let service;
 let stopping;
 let stopped = false;
 let parentWatch;
 let consoleHandoff;
+let remoteConsole;
+let runnerSettings;
 const lines = createInterface({ input: process.stdin });
 const stop = () => {
   if (stopped) return stopping;
   stopped = true;
   clearInterval(parentWatch);
   lines.close();
-  stopping = Promise.all([service?.close(), consoleHandoff?.close()]).finally(() => process.exit(0));
+  stopping = (async () => {
+    await remoteConsole?.close();
+    await Promise.all([service?.close(), consoleHandoff?.close()]);
+  })().finally(() => process.exit(0));
   return stopping;
 };
 process.once('SIGINT', stop);
@@ -28,6 +34,7 @@ lines.once('line', async line => {
   started = true;
   try {
     const settings = JSON.parse(line);
+    runnerSettings = settings;
     let eacCredential;
     if (settings.eacSourceDir) {
       const original = await import(pathToFileURL(path.join(settings.eacSourceDir, 'src/vault.js')).href);
@@ -85,7 +92,15 @@ lines.on('line', async line => {
   if (!command.id || !service || stopping) return;
   try {
     let value;
-    if (command.type === 'console') value = consoleHandoff.ticket();
+    if (command.type === 'console') {
+      const remote = command.access === 'tailscale' || command.access !== 'local' && remoteByDefault(runnerSettings);
+      if (remote) {
+        const previous = remoteConsole;
+        if (previous?.closed) { await previous.close(); if (remoteConsole === previous) remoteConsole = undefined; }
+        remoteConsole ??= createTailscaleConsole(service, runnerSettings, runnerSettings.dataDir);
+        value = await remoteConsole.open();
+      } else value = consoleHandoff.ticket();
+    }
     else if (command.type === 'admit') {
       const model = command.model;
       if (typeof model !== 'string') throw new Error('Missing model');
@@ -114,5 +129,6 @@ lines.on('line', async line => {
       }));
     } else throw new Error('Unknown managed command');
     process.stdout.write(JSON.stringify({ id: command.id, value }) + '\n');
-  } catch { process.stdout.write(JSON.stringify({ id: command.id, error: '内置服务无法执行管理请求' }) + '\n'); }
+  } catch (error) { process.stdout.write(JSON.stringify({ id: command.id,
+    error: command.type === 'console' ? error.message : '内置服务无法执行管理请求' }) + '\n'); }
 });

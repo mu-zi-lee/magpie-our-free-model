@@ -1,9 +1,12 @@
 import { getManagedRuntime } from './managed-runtime.mjs';
 import { safeID, positive, fallback, chatRequest, forwardChat } from './transport.mjs';
+import { remoteByDefault } from './tailscale-console.mjs';
+import fs from 'node:fs';
 
 const PROVIDER = 'our-free-model';
 const SDK = '@ai-sdk/openai-compatible';
 const boolean = (value, defaultValue = false) => typeof value === 'boolean' ? value : defaultValue;
+let providerIcon;
 
 export function managedModel(row, base) {
   if (!safeID(row?.id)) return;
@@ -31,6 +34,13 @@ export function managedModel(row, base) {
 export async function createManagedPlugin(input, options = {}) {
   const runtime = getManagedRuntime(input, options);
   let cache;
+  const authorizeConsole = async access => {
+    const result = await runtime.command('console', access ? { access } : {});
+    const remote = typeof result === 'object';
+    return { url: remote ? result.url : result, method: 'auto',
+      instructions: remote ? result.instructions : '内置服务已启动。在本机控制台完成 EAC 或账号渠道登录，再回 Magpie 刷新模型。此按钮也可重新打开管理页面。',
+      async callback() { return { type: 'success', key: 'managed', metadata: { dataDir: runtime.dataDir } }; } };
+  };
   const checkAuth = auth => {
     if (auth?.type !== 'api' || auth.key !== 'managed' || auth.metadata?.dataDir !== runtime.dataDir) {
       throw Object.assign(new Error('请在 Our Free Model 一体化供应商中重新打开控制台并启用'), { signIn: 'expired' });
@@ -61,12 +71,12 @@ export async function createManagedPlugin(input, options = {}) {
       if (cfg.provider[PROVIDER].name === 'Our Free Model · 一体化（全部渠道）') cfg.provider[PROVIDER].name = 'Our Free Model';
     },
     auth: { provider: PROVIDER, maxConcurrency: 2,
-      methods: [{ type: 'oauth', label: '启用全部渠道 / 打开账号管理控制台', async authorize() {
-        const url = await runtime.command('console');
-        return { url, method: 'auto',
-          instructions: '内置服务已启动。匿名/Kilo 可直接使用；在本机控制台完成 EAC 或账号渠道登录，再回 Magpie 刷新模型。此按钮也可重新打开管理页面。',
-          async callback() { return { type: 'success', key: 'managed', metadata: { dataDir: runtime.dataDir } }; } };
-      } }],
+      // Carry the packaged picture without depending on access to GitHub.
+      icon: providerIcon ??= `data:image/webp;base64,${fs.readFileSync(new URL('../assets/icon.webp', import.meta.url)).toString('base64')}`,
+      methods: [
+        { type: 'oauth', label: remoteByDefault(options) ? '启用全部渠道 / 临时远程控制台（Tailscale）' : '启用全部渠道 / 打开账号管理控制台', authorize: () => authorizeConsole() },
+        { type: 'oauth', label: remoteByDefault(options) ? '本机控制台 / SSH 转发' : '临时远程控制台（Tailscale）', authorize: () => authorizeConsole(remoteByDefault(options) ? 'local' : 'tailscale') },
+      ],
       async loader(getAuth) {
         const auth = await getAuth();
         if (!auth) return {};

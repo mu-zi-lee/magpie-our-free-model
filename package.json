@@ -1,7 +1,7 @@
 {
   "name": "magpie-our-free-model",
-  "version": "0.3.0",
-  "description": "Our Free Model for Magpie: one provider with account management and automatic Node runtime installation",
+  "version": "0.4.0",
+  "description": "Our Free Model for Magpie: account management, temporary Tailscale console and automatic runtime installation",
   "type": "module",
   "main": "./index.mjs",
   "exports": {
@@ -13,6 +13,7 @@
     "index.mjs",
     "compatibility.mjs",
     "src",
+    "assets",
     "vendor",
     "scripts",
     "tests",
@@ -41,6 +42,7 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "magpie": {
+    "icon": "https://raw.githubusercontent.com/mu-zi-lee/magpie-our-free-model/main/assets/icon.webp",
     "maxConcurrency": 2
   },
   "scripts": {

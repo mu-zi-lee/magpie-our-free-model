@@ -5,7 +5,8 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.3.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名渠道与账号渠道。
+版本 **0.4.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名渠道与账号渠道。
+插件图标使用 `assets/icon.png` 的无损 WebP 副本（像素和尺寸相同，满足 Magpie 的 1 MB 限制），随包加载，无需联网获取图标。
 原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
 随包保存在 `vendor/ofm/`。57 个保留文件中 54 个保持原始字节；3 个有明确适配改动：
 移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加可选本机 EAC 来源入口。
@@ -17,7 +18,7 @@
 1. 从本仓库 Code → Download ZIP 解压，或执行下方 `git clone`。把项目目录放到固定位置。
 2. 在 Magpie 插件页面添加该目录，启用插件；不需要 `npm install` 或编译。
 3. 在 **Our Free Model** 供应商点击 **启用全部渠道 / 打开账号管理控制台**。
-   插件自动启动随包携带的服务，并打开本机网页控制台；无需填写本地 API Key。
+   插件自动启动随包携带的服务；桌面打开本机控制台，SSH/无桌面 Linux 默认提供 Tailscale 临时 HTTPS 控制台；无需填写本地 API Key。
 4. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 先配置下方的本机原项目来源，再在控制台完成原项目的 GitHub 授权；
    账号渠道在控制台分别登录，完成后回 Magpie 刷新模型，并为 Agent 选用 `our-free-model` 下的模型。
 
@@ -77,12 +78,52 @@ ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录�
 
 ### 服务器部署与浏览器控制台
 
-自动安装会在 **Magpie 所在服务器** 完成。管理服务仍只监听回环地址。
-在自己电脑上打开控制台时，需要 SSH 转发管理服务和一次性交接服务两个端口。
+默认 `managed.consoleAccess: "auto"`：检测到 SSH 环境，或没有 DISPLAY/WAYLAND_DISPLAY 的 Linux 时，
+供应商登录入口使用 **临时远程控制台（Tailscale）**。自动判断只是环境启发式；
+判断不符合实际时可在登录方式中选择本机/SSH 入口，或显式设置 `"local"`、`"tailscale"`。
+
+1. 在持续运行的 Magpie 界面点击 **临时远程控制台（Tailscale）**。
+2. 优先复用已连接的 Tailscale。Linux 缺少可用客户端/守护进程时，自动从官方
+   [下载源](https://dl.tailscale.com/stable/) 下载固定 **1.102.4** 的静态二进制，按代码中固定 SHA-256 校验，缓存到插件数据目录 `runtime/`。
+   自动下载支持 **Linux x64/arm64**，需要 `tar` 和访问官方下载源；不需要 root，不修改系统 PATH/服务。
+3. 未加入网络时，会给出 Tailscale 官方授权链接。在自己电脑的浏览器登录你的 Tailscale 账号并授权，
+   然后回 Magpie 再次点击同一入口。可能还需要按下一次链接启用 HTTPS/Funnel。
+   **账号登录和管理员授权无法由插件代替**；浏览器无需安装 Tailscale。
+4. 准备好后得到 `https://设备名.网络名.ts.net[:端口]/open/…`，直接在浏览器打开。
+   链接十分钟有效、只能使用一次；首次公网 DNS 生效可能需要几分钟。
+5. 完成账号管理后点击页面顶部 **结束远程访问**。页面退出登录、通道启动后满 **30 分钟**、
+   或宿主退出都会关闭本次入口；重新点击可开启新通道。模型服务继续在服务器本机运行。
+
+可选配置：
+
+```json
+{
+  "managed": {
+    "consoleAccess": "auto",
+    "autoInstallTailscale": true
+  }
+}
+```
+
+可用 `tailscalePath` 指定已有 CLI，Linux 可用 `tailscaledPath` 指定守护进程。
+macOS/Windows 的远程入口需要先安装并连接官方 Tailscale 客户端；本版不自动运行这些系统的提权安装器。
+`autoInstallTailscale: false` 禁止自动下载，缺少客户端时直接显示原因。
+
+管理服务仍只监听回环地址。Funnel 转发到插件独立的管理网关；网关校验 HTTPS Host/Origin、一次性链接和
+Secure/HttpOnly 会话，拒绝模型 API 和本机终端登录入口。已有 Tailscale 节点使用空闲的 443/8443/10000 端口，
+以前台会话运行，只撤销自己的会话，**不执行全局 reset/logout**。没有已连接节点的 Linux 使用独立 socket、
+userspace networking 和内存状态，退出时注销临时节点。[Funnel](https://tailscale.com/docs/features/tailscale-funnel)、
+[临时节点](https://tailscale.com/docs/features/ephemeral-nodes) 的账户权限和网络限制仍适用。
+
+Funnel 解决管理页面可达性，不会改写厂商的 OAuth 注册规则。某些渠道（如 Gemini）仍使用独立的 localhost 回调端口，
+这类登录仍需额外 SSH 转发该回调端口；本版未逐家使用真实账号验证远程登录。控制台 API 接入页显示的是服务器本机 API 地址，
+不会通过这个临时入口公开模型 API。
+
+如果不使用 Tailscale，可以保留 SSH 方式。在自己电脑上转发管理服务和一次性交接服务两个端口。
 可设置固定端口，避免每次查找交接端口：
 
 ```json
-{ "managed": { "port": 18900, "consolePort": 18901 } }
+{ "managed": { "consoleAccess": "local", "port": 18900, "consolePort": 18901 } }
 ```
 
 重启服务器上的 Magpie，在你电脑的终端执行：
@@ -158,7 +199,7 @@ GitHub 的仓库密钥检查拦截了上游渠道包中的固定 Google OAuth �
 
 ```json
 {
-  "managed": { "autoInstallNode": true, "dataDir": "/absolute/path/to/ofm-data", "port": 18900, "consolePort": 18901 }
+  "managed": { "autoInstallNode": true, "consoleAccess": "auto", "autoInstallTailscale": true, "dataDir": "/absolute/path/to/ofm-data", "port": 18900, "consolePort": 18901 }
 }
 ```
 

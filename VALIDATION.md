@@ -1,4 +1,40 @@
-# Validation — 0.3.0
+# Validation — 0.4.0
+
+## Temporary Tailscale console — 2026-10-09
+
+Verified on macOS arm64 with Node and Bun:
+
+- `npm run check` and `bun scripts/check.mjs`: plugin hook checks pass.
+- `npm test`: **186 passed; 0 failed; 0 skipped**.
+- Linux installer fixtures exercise official pinned URLs, streamed SHA-256 verification,
+  matched CLI/daemon extraction, concurrent installation, cache reuse, and rejecting
+  a bad checksum before extraction or execution. Official 1.102.4 amd64/arm64 hashes
+  were fetched from the release server and pinned in source.
+- Controlled CLI processes exercise existing-node reuse, isolated userspace daemon
+  with in-memory state/private socket, browser login and Funnel policy authorization,
+  free-port selection, foreground-only cleanup, deadline expiry, and worker cleanup
+  after SIGKILL of the owner. Existing nodes are never globally reset or logged out.
+- Real bundled Node runner and actual management service exercise remote authorize,
+  gateway ticket/cookie exchange, management reads, and closing the remote gateway
+  while the model service remains available. Funnel transport is a controlled CLI fixture.
+- Gateway tests cover unauthenticated requests, replay/expiry, Secure/HttpOnly cookies,
+  cross-origin rejection, opening a capability link from Magpie Web, blocked model
+  API/local terminal routes, header isolation, and explicit closure.
+
+No live public Funnel or real Tailscale browser authorization was exercised. No Linux
+static binary was executed on this macOS host. macOS/Windows system installers are
+not automated. Vendor OAuth flows using separate localhost callback listeners still
+need their own forwarding; this change does not establish remote login compatibility
+for every account channel. The earlier evidence below records the previous run.
+
+## Packaged provider icon
+
+The original `assets/icon.png` is preserved. Its lossless WebP copy is 701,618 bytes
+and has identical 1254 × 1254 RGBA pixels, verified by decoding both images.
+The package includes both assets. `magpie.icon` supplies the public HTTPS asset;
+the auth hook supplies the packaged WebP as a data URI for offline loading.
+
+## Previous 0.3.0 run
 
 Date: 2026-10-09. Linux amd64; Node.js v24.19.0.
 

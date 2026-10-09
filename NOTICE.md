@@ -61,3 +61,10 @@ described above, and no longer requires a manually started external OFM service.
 
 This is an independent package, not an official Magpie release or a release
 by the original OFM maintainer. No npm publication is implied by its name.
+
+## 临时远程管理入口
+
+插件可从 https://dl.tailscale.com/stable/ 下载官方 Tailscale 1.102.4 Linux 静态发行包，
+校验固定 SHA-256 后缓存到用户数据目录；这些二进制不随本仓库分发。
+Tailscale 及其第三方组件许可见 https://tailscale.com/licenses 。
+临时网关、下载器和进程管理代码位于本仓库 `src/`，未修改固定的上游管理服务。

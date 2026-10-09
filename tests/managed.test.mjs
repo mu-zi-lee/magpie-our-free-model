@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
 import { once } from 'node:events';
 import { createManagedPlugin, managedModel } from '../src/managed.mjs';
 import { getManagedRuntime } from '../src/managed-runtime.mjs';
@@ -125,7 +125,22 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   const consolePort = reservation.address().port;
   await new Promise(resolve => reservation.close(resolve));
   const input = { directory: dir };
-  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir };
+  const tunnelTarget = path.join(dir, 'tunnel-target.txt');
+  const tailscaleScript = path.join(dir, 'tailscale-fixture.mjs');
+  fs.writeFileSync(tailscaleScript, `import fs from 'node:fs';
+    const args=process.argv.slice(2);
+    if(args[0]==='version') { console.log('1.102.4'); process.exit(0); }
+    if(args[0]==='status') { console.log(JSON.stringify({BackendState:'Running',Self:{DNSName:'managed.fixture.ts.net.'}})); process.exit(0); }
+    if(args[0]==='funnel' && args[1]==='status') { console.log('{}'); process.exit(0); }
+    if(args[0]==='funnel') {
+      fs.writeFileSync(${JSON.stringify(tunnelTarget)}, args.at(-1));
+      console.log('Available on the internet:\\nhttps://managed.fixture.ts.net');
+      setInterval(()=>{},1000); process.on('SIGTERM',()=>process.exit(0));
+    } else process.exit(1);
+  `);
+  const tailscalePath = path.join(dir, 'tailscale');
+  fs.writeFileSync(tailscalePath, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(tailscaleScript)} "$@"\n`, { mode: 0o700 });
+  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir, consoleAccess: 'local', tailscalePath };
   const runtime = getManagedRuntime(input, options);
   t.after(async () => {
     await runtime.close();
@@ -161,6 +176,27 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     const next = await plugin.auth.methods[0].authorize();
     assert.notEqual(next.url, login.url);
     assert.equal((await fetch(next.url, { redirect: 'manual' })).status, 303);
+  });
+  await t.test('remote auth goes through the real runner and gateway; closing it keeps model service running', async () => {
+    const remote = await plugin.auth.methods[1].authorize();
+    assert.match(remote.url, /^https:\/\/managed\.fixture\.ts\.net\/open\//);
+    const target = fs.readFileSync(tunnelTarget, 'utf8');
+    // Node fetch does not preserve a caller-supplied Host on all supported versions.
+    const request = (pathname, options = {}) => new Promise((resolve, reject) => {
+      const req = httpRequest(target + pathname, { ...options, headers: { host: 'managed.fixture.ts.net', ...options.headers } }, res => {
+        let body = ''; res.on('data', chunk => { body += chunk; });
+        res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+      }); req.on('error', reject); req.end();
+    });
+    const opened = await request(new URL(remote.url).pathname);
+    assert.equal(opened.status, 303);
+    const cookie = opened.headers['set-cookie'][0].split(';')[0];
+    const summary = await request('/api/management/summary', { headers: { cookie } });
+    assert.equal(summary.status, 200); assert.equal(JSON.parse(summary.body).channels.state, 'ready');
+    const closed = await request('/remote/close', { method: 'POST', headers: { cookie, origin: 'https://managed.fixture.ts.net' } });
+    assert.equal(closed.status, 200);
+    await until(async () => { try { await fetch(target); return false; } catch { return true; } });
+    assert.equal((await api('/api/management/summary')).status, 200);
   });
   let models;
   const provider = { models: {} };
