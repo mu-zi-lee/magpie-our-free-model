@@ -1,0 +1,17 @@
+{
+  "name": "opencode-our-free-model-plugin",
+  "version": "0.1.0",
+  "description": "Magpie/OpenCode provider plugin: Zen free, Kilo free and optional local Our Free Model gateway",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "src", "vendor/zen-free/*.mjs", "vendor/zen-free/LICENSE", "scripts", "tests", "README.md", "VALIDATION.md", "NOTICE.md", "LICENSE"],
+  "keywords": ["opencode", "opencode-plugin", "magpie-plugin", "provider", "free-model", "kilo"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/mu-zi-lee/magpie-our-free-model.git" },
+  "homepage": "https://github.com/mu-zi-lee/magpie-our-free-model#readme",
+  "bugs": { "url": "https://github.com/mu-zi-lee/magpie-our-free-model/issues" },
+  "engines": { "node": ">=22" },
+  "magpie": { "maxConcurrency": 2 },
+  "scripts": { "test": "node --test tests/*.test.mjs vendor/zen-free/*.test.mjs", "check": "node scripts/check.mjs" }
+}
