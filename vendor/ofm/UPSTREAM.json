@@ -292,8 +292,8 @@
     {
       "path": "packages/standalone/channels/business.mjs",
       "originalSha256": "68c36b1eb48bb5f24ad0fdfb90fc71172b6babeae65aac2bbc5eae935442732d",
-      "sha256": "7374811d2e11d9cf2906e56dd845e2b648d6898a0288550cddc2e384e2baaefd",
-      "reason": "Remove bundled Google OAuth client defaults; require local user-owned OAuth client configuration via existing environment overrides."
+      "sha256": "b1dd2fe5be5f4408fc46338fb77ddbfd380975616cec8ce4a6a8b1c9b6ff2b4d",
+      "reason": "Remove bundled Google OAuth defaults and Loomy WeChat App ID; require private local configuration. Google uses existing environment overrides; Loomy uses OFM_LOOMY_WECHAT_APP_ID."
     },
     {
       "path": "src/vault.js",

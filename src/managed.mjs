@@ -57,7 +57,8 @@ export async function createManagedPlugin(input, options = {}) {
   return {
     async config(cfg) {
       cfg.provider ??= {};
-      cfg.provider[PROVIDER] ??= { name: 'Our Free Model · 一体化（全部渠道）', npm: SDK, models: {} };
+      cfg.provider[PROVIDER] ??= { name: 'Our Free Model', npm: SDK, models: {} };
+      if (cfg.provider[PROVIDER].name === 'Our Free Model · 一体化（全部渠道）') cfg.provider[PROVIDER].name = 'Our Free Model';
     },
     auth: { provider: PROVIDER, maxConcurrency: 2,
       methods: [{ type: 'oauth', label: '启用全部渠道 / 打开账号管理控制台', async authorize() {

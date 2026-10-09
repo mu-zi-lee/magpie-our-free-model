@@ -36,6 +36,9 @@ test('upstream runtime hashes match the declared snapshot and Google configurati
   assert.ok(!stub.includes('crypto') && !stub.includes('LANE_SEAL'));
   assert.match(business, /var GEMINI_DEFAULT_CLIENT_ID = "";/);
   assert.match(business, /var GEMINI_DEFAULT_CLIENT_SECRET = "";/);
+  assert.match(business, /var LOOMY_WECHAT_APP_ID = "";/);
+  assert.doesNotMatch(business, /wx[0-9a-f]{16}/);
+  assert.match(business, /encodeURIComponent\(appId\)/);
 });
 
 test('managed metadata preserves native effort ids and declared image/context capabilities', () => {
@@ -56,6 +59,7 @@ test('managed lifecycle validates settings, prevents conflicting instances and d
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-config-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: -1 }), /port/);
+  assert.throws(() => getManagedRuntime({ directory: dir }, { port: 18900, consolePort: 18900 }), /consolePort/);
   const runtime = getManagedRuntime({ directory: dir }, { nodePath: path.join(dir, 'missing-node') });
   assert.equal(getManagedRuntime({ directory: dir }, { nodePath: path.join(dir, 'missing-node') }), runtime);
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: 0 }), /不同服务设置/);
@@ -116,8 +120,12 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   }) }));
   const wrapper = path.join(dir, 'node-fixture');
   fs.writeFileSync(wrapper, `#!/bin/sh\nexec ${quote(process.execPath)} --import ${quote(path.join(root, 'tests/managed-fixture.mjs'))} "$@"\n`, { mode: 0o700 });
+  const reservation = createServer();
+  reservation.listen(0, '127.0.0.1'); await once(reservation, 'listening');
+  const consolePort = reservation.address().port;
+  await new Promise(resolve => reservation.close(resolve));
   const input = { directory: dir };
-  const options = { dataDir, nodePath: wrapper, port: 0, eacSourceDir };
+  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir };
   const runtime = getManagedRuntime(input, options);
   t.after(async () => {
     await runtime.close();
@@ -131,6 +139,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   const auth = { type: 'api', key: result.key, metadata: result.metadata };
   assert.equal(auth.key, 'managed');
   assert.ok(!login.url.includes('ofm-'));
+  assert.equal(new URL(login.url).port, String(consolePort));
   const conn = await runtime.connection();
   const api = async (suffix, body, cookie) => {
     const response = await fetch(conn.base.replace(/\/v1$/, '') + suffix, {

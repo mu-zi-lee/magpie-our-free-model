@@ -10,6 +10,7 @@ import { spawn } from 'node:child_process';
 const binary = process.env.MAGPIE_BIN;
 if (!binary) throw new Error('Set MAGPIE_BIN to your Magpie CLI absolute path');
 const project = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/, '');
+const compatibility = path.join(project, 'compatibility.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-magpie-test-'));
 const calls = [];
 const row = { id: 'fixture/free', name: 'Fixture Free', isFree: true, context_length: 64000,
@@ -75,8 +76,8 @@ async function run(args, input = '') {
 }
 try {
   console.log((await run(['--version'])).out.trim());
-  await run(['plugin', 'add', project]);
-  await run(['plugin', 'options', project, JSON.stringify({
+  await run(['plugin', 'add', compatibility]);
+  await run(['plugin', 'options', compatibility, JSON.stringify({
     managed: false,
     zen: { baseURL: `${origin}/zen/v1`, catalogURL: `${origin}/catalog`, docsURL: `${origin}/docs` },
     kilo: { baseURL: `${origin}/kilo/v1` }, local: { baseURL: `${origin}/local/v1` },

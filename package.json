@@ -1,17 +1,50 @@
 {
-  "name": "opencode-our-free-model-plugin",
-  "version": "0.2.0",
-  "description": "Magpie/OpenCode provider plugin: Zen free, Kilo free and optional local Our Free Model gateway",
+  "name": "magpie-our-free-model",
+  "version": "0.3.0",
+  "description": "Our Free Model for Magpie: one provider with account management and automatic Node runtime installation",
   "type": "module",
   "main": "./index.mjs",
-  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
-  "files": ["index.mjs", "src", "vendor", "scripts", "tests", "README.md", "VALIDATION.md", "NOTICE.md", "LICENSE"],
-  "keywords": ["opencode", "opencode-plugin", "magpie-plugin", "provider", "free-model", "kilo"],
+  "exports": {
+    ".": "./index.mjs",
+    "./server": "./index.mjs",
+    "./compatibility": "./compatibility.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "compatibility.mjs",
+    "src",
+    "vendor",
+    "scripts",
+    "tests",
+    "README.md",
+    "VALIDATION.md",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "magpie",
+    "magpie-plugin",
+    "provider",
+    "free-model",
+    "our-free-model"
+  ],
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/mu-zi-lee/magpie-our-free-model.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mu-zi-lee/magpie-our-free-model.git"
+  },
   "homepage": "https://github.com/mu-zi-lee/magpie-our-free-model#readme",
-  "bugs": { "url": "https://github.com/mu-zi-lee/magpie-our-free-model/issues" },
-  "engines": { "node": "^22.19.0 || >=24.0.0" },
-  "magpie": { "maxConcurrency": 2 },
-  "scripts": { "test": "node --test tests/*.test.mjs vendor/zen-free/*.test.mjs", "check": "node scripts/check.mjs" }
+  "bugs": {
+    "url": "https://github.com/mu-zi-lee/magpie-our-free-model/issues"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "magpie": {
+    "maxConcurrency": 2
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs vendor/zen-free/*.test.mjs",
+    "check": "node scripts/check.mjs"
+  }
 }

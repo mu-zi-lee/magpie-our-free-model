@@ -1,14 +1,14 @@
-# Validation — 0.2.0
+# Validation — 0.3.0
 
 Date: 2026-10-09. Linux amd64; Node.js v24.19.0.
 
 ## Managed integration
 
-- `npm run check`: four provider exports and hooks passed, no network or credentials.
-- `npm test`: **170 passed; 0 failed; 0 skipped**.
+- `npm run check`: one default provider export and hooks passed, no network or credentials.
+- `npm test`: **176 passed; 0 failed; 0 skipped**.
 - 54 of the 57 retained upstream paths match commit
   `f8974369c5904858c696b520d8b9b82ad4425f78` byte-for-byte. Three adapted paths
-  match their declared hashes. Google OAuth defaults were removed; the EAC vault
+  match their declared hashes. Google OAuth defaults and the Loomy WeChat App ID were removed; the EAC vault
   was replaced by an empty stub; and the service accepts an optional local
   credential function. Two encrypted EAC data files are omitted entirely.
   These changes respond to GitHub secret scanning and automatic public-egress review.
@@ -27,8 +27,33 @@ Date: 2026-10-09. Linux amd64; Node.js v24.19.0.
 - Real official Magpie CLI **0.1.1139** and its **Bun 1.4.2** host passed the
   managed provider sign-in, model metadata and actual Chat request tests.
   After each short-lived CLI host exits, the child stops and releases its lock.
-- The previous compatibility-host suite also passed: three signed-in providers,
+- The optional compatibility-file host suite also passed: three signed-in providers,
   Zen Chat/Responses/Anthropic, Kilo Chat and external-local Chat.
+
+## Automatic Node runtime and single entry
+
+- Main entry exports only `OurFreeModelPlugin`, so normal installation registers
+  exactly one provider without compatibility-disable options. Package metadata is
+  `magpie-our-free-model` 0.3.0; provider display name is Our Free Model.
+- Automatic runtime tests passed in Node and **Bun 1.4.2**: missing-system-Node
+  fallback, concurrent download sharing, cache reuse, checksum rejection before
+  extraction/execution, failed-install cleanup/retry, explicit-path precedence,
+  opt-out, supported target mappings and old/Bun runtime rejection.
+- A real official **Node.js 24.21.0 Linux x64** release was downloaded from
+  nodejs.org by Bun, checked against the pinned official SHA-256, extracted and
+  executed successfully. A second install reused the cache. The actual bundled service
+  and installer test suites also passed under this downloaded Node version. This found and fixed
+  root/container tar ownership failures using `--no-same-owner` and
+  `--no-same-permissions`. No system Node or PATH was modified.
+- The bundled service test verifies the configured console handoff port, real
+  cookie exchange and shutdown; README provides SSH forwarding for server use.
+- The WeChat patch test confirms missing local configuration reports an error,
+  configured App ID builds the login URL, and no fixed WeChat App ID remains in
+  the compiled bundle. Combined OAuth adaptation was reproduced byte-for-byte
+  from the pinned original upstream source. No live Loomy login was performed.
+- Windows/macOS/Alpine installers are implemented but not executed on those
+  systems. Tests for extraction use small synthetic archives; the separate real
+  Linux download check used the official binary, not a synthetic archive.
 
 Reproduce managed-host verification (the Node wrapper is POSIX-only):
 
@@ -38,7 +63,7 @@ MAGPIE_BIN=/absolute/path/to/magpie node scripts/managed-magpie-smoke.mjs
 
 No live vendor inference, real GitHub EAC authorization, or real channel account
 login was performed. User-owned Gemini OAuth client configuration and Code Assist
-eligibility were not validated. Browser cookie exchange was verified over HTTP; GUI clicks
+eligibility and Loomy WeChat login configuration were not validated. Browser cookie exchange was verified over HTTP; GUI clicks
 and rendering were not exercised. Runtime management is tested on Linux only;
 macOS and Windows behavior needs testing on those platforms. The main managed
 integration test's POSIX Node wrapper skips on Windows; the other unit tests

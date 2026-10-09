@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 // A short-lived browser handoff exchanges a one-use ticket for the upstream
 // HttpOnly management cookie. API keys never enter URLs or browser JavaScript.
-export async function createConsoleHandoff(service) {
+export async function createConsoleHandoff(service, port = 0) {
   const tickets = new Map();
   let address;
   const server = http.createServer(async (req, res) => {
@@ -32,7 +32,7 @@ export async function createConsoleHandoff(service) {
       res.end('管理链接已失效。请回 Magpie，再次点击“打开账号管理控制台”。');
     }
   });
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
   address = `http://127.0.0.1:${server.address().port}`;
   return {
     ticket() {

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import * as entry from '../index.mjs';
+import * as entry from '../compatibility.mjs';
+import * as main from '../index.mjs';
 import { buildKiloModels } from '../src/kilo.mjs';
 
 const auth = { type: 'api', key: 'public' };
@@ -57,9 +58,11 @@ function request(loader, base, body = {}, signal) {
     body: JSON.stringify({ model: 'vendor/free', messages: [{ role: 'user', content: 'hello' }], stream: true, ...body }) });
 }
 
-test('entry exports exactly four provider functions and disabling each makes no network calls', async () => {
-  assert.deepEqual(Object.keys(entry).sort(), ['KiloFreePlugin', 'LocalGatewayPlugin', 'OurFreeModelPlugin', 'ZenFreePlugin']);
-  for (const [name, option] of [['ZenFreePlugin', 'zen'], ['KiloFreePlugin', 'kilo'], ['LocalGatewayPlugin', 'local'], ['OurFreeModelPlugin', 'managed']]) {
+test('main exports one provider only; legacy providers require their explicit entry', async () => {
+  assert.deepEqual(Object.keys(main), ['OurFreeModelPlugin']);
+  assert.deepEqual(await main.OurFreeModelPlugin({}, { managed: false }), {});
+  assert.deepEqual(Object.keys(entry).sort(), ['KiloFreePlugin', 'LocalGatewayPlugin', 'ZenFreePlugin']);
+  for (const [name, option] of [['ZenFreePlugin', 'zen'], ['KiloFreePlugin', 'kilo'], ['LocalGatewayPlugin', 'local']]) {
     assert.deepEqual(await entry[name]({}, { [option]: false }), {});
   }
 });

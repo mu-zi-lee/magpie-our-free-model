@@ -46936,7 +46936,7 @@ import { createServer as createServer4 } from "node:http";
 import { randomUUID as randomUUID6 } from "node:crypto";
 
 // vendor/channel-pack/src/loomy-wechat.ts
-var LOOMY_WECHAT_APP_ID = "wx18d60be432287cf8";
+var LOOMY_WECHAT_APP_ID = "";
 var LOOMY_WECHAT_REDIRECT_URI = "https://loomy.xunfei.cn/oauth/wechat/callback";
 var LOOMY_WECHAT_POLL_TIMEOUT_MS = 4e4;
 var LOOMY_WECHAT_POLL_STATUS = Object.freeze({
@@ -46956,7 +46956,9 @@ var LOOMY_WECHAT_POLL_STATUS = Object.freeze({
 var WECHAT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 var UUID_PATTERN = /^[A-Za-z0-9_\-=+/]{6,64}$/;
 function buildLoomyWechatAuthUrl(state) {
-  return `https://open.weixin.qq.com/connect/qrconnect?appid=${encodeURIComponent(LOOMY_WECHAT_APP_ID)}&redirect_uri=${encodeURIComponent(LOOMY_WECHAT_REDIRECT_URI)}&response_type=code&scope=snsapi_login&state=${encodeURIComponent(state)}#wechat_redirect`;
+  const appId = process.env.OFM_LOOMY_WECHAT_APP_ID?.trim();
+  if (!appId) throw new Error("Loomy 微信扫码需要本机 App ID 配置；请参考 Magpie 插件 README 的 Loomy 配置说明。");
+  return `https://open.weixin.qq.com/connect/qrconnect?appid=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(LOOMY_WECHAT_REDIRECT_URI)}&response_type=code&scope=snsapi_login&state=${encodeURIComponent(state)}#wechat_redirect`;
 }
 function extractLoomyWechatUuid(html) {
   if (typeof html !== "string" || html.length === 0) return "";

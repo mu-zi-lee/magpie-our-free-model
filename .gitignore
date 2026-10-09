@@ -7,3 +7,5 @@ node_modules/
 *.log
 .DS_Store
 gemini-oauth.json
+loomy-wechat.json
+our-free-model/

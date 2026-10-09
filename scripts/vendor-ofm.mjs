@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { removeEmbeddedGoogleDefaults, externalizeEacCredentials } from './ofm-google-config-patch.mjs';
+import { removeEmbeddedOAuthDefaults, externalizeEacCredentials } from './ofm-google-config-patch.mjs';
 
 const pin = 'f8974369c5904858c696b520d8b9b82ad4425f78';
 const root = path.resolve(process.argv[2] || '');
@@ -36,9 +36,9 @@ for (const name of [...files].sort()) {
   fs.writeFileSync(target, bytes);
   manifest.push({ path: name, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') });
 }
-const adaptation = removeEmbeddedGoogleDefaults(dest);
+const adaptation = removeEmbeddedOAuthDefaults(dest);
 const eacAdaptations = externalizeEacCredentials(dest);
 const omitted = ['src/vault-data.js', 'src/vault-anchor.js'];
 fs.writeFileSync(path.join(dest, 'UPSTREAM.json'), JSON.stringify({ repository: 'https://github.com/Ebony-Vinyl/dsh-our-free-model', commit: pin,
   files: manifest.filter(file => !omitted.includes(file.path)), omitted, adaptations: [adaptation, ...eacAdaptations] }, null, 2) + '\n');
-console.log('Copied runtime without credential material; recorded Google and local EAC adaptations');
+console.log('Copied runtime without embedded OAuth/EAC defaults; recorded all adaptations');

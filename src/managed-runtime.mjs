@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFile, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
-import { promisify } from 'node:util';
+import { resolveNodeRuntime } from './node-runtime.mjs';
 
-const execute = promisify(execFile);
 const instances = new Map();
 const runner = fileURLToPath(new URL('./managed-runner.mjs', import.meta.url));
 const environment = () => {
@@ -22,11 +21,13 @@ const environment = () => {
 export function getManagedRuntime(input = {}, options = {}) {
   const directory = input.directory || input.worktree || path.join(os.homedir(), '.config', 'magpie');
   const dataDir = path.resolve(options.dataDir || path.join(directory, 'our-free-model'));
-  const nodePath = options.nodePath || (process.versions.bun ? 'node' : process.execPath);
+  const nodePath = options.nodePath;
   const port = options.port;
   if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) throw new Error('managed.port 必须为 0 到 65535 的整数');
   const eacSourceDir = options.eacSourceDir ? path.resolve(options.eacSourceDir) : undefined;
-  const identity = JSON.stringify([dataDir, nodePath, port, options.refresh !== false, eacSourceDir]);
+  const consolePort = options.consolePort;
+  if (consolePort !== undefined && (!Number.isInteger(consolePort) || consolePort < 0 || consolePort > 65535 || consolePort !== 0 && consolePort === port)) throw new Error('managed.consolePort 必须为独立的 0 到 65535 整数端口');
+  const identity = JSON.stringify([dataDir, nodePath, port, options.refresh !== false, eacSourceDir, options.autoInstallNode !== false, consolePort]);
   if (instances.has(dataDir)) {
     const entry = instances.get(dataDir);
     if (entry.identity !== identity) throw new Error('同一数据目录使用了不同服务设置；重启 Magpie 后再应用配置');
@@ -45,15 +46,8 @@ export function getManagedRuntime(input = {}, options = {}) {
       if (state && child?.exitCode === null && !child.killed) return state;
       if (pending) return pending;
       pending = (async () => {
-        let version;
-        try {
-          const result = await execute(nodePath, ['-p', 'JSON.stringify({version:process.versions.node,bun:!!process.versions.bun})'],
-            { env: environment(), timeout: 5000, windowsHide: true });
-          version = JSON.parse(result.stdout);
-        } catch { throw new Error('内置账号服务需要 Node.js 22.19+ 或 24+；请安装 Node，或在 managed.nodePath 填写 Node 可执行文件完整路径。'); }
-        const [major, minor] = String(version.version).split('.').map(Number);
-        if (version.bun || !(major === 22 && minor >= 19 || major >= 24)) throw new Error('managed.nodePath 必须指向 Node.js 22.19+ 或 24+（不能是 Bun）');
-        const processHandle = spawn(nodePath, [runner], { env: environment(), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
+        const resolvedNode = await resolveNodeRuntime(options, dataDir, environment());
+        const processHandle = spawn(resolvedNode, [runner], { env: environment(), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
         child = processHandle;
         processHandle.stdin.on('error', () => {});
         const exit = new Promise(resolve => processHandle.once('exit', resolve));
@@ -89,7 +83,7 @@ export function getManagedRuntime(input = {}, options = {}) {
               }
             } catch { finish(new Error('内置服务返回了无效启动信息')); }
           });
-          processHandle.stdin.write(JSON.stringify({ dataDir, port, refresh: options.refresh !== false, eacSourceDir, parentPid: process.pid }) + '\n');
+          processHandle.stdin.write(JSON.stringify({ dataDir, port, consolePort, refresh: options.refresh !== false, eacSourceDir, parentPid: process.pid }) + '\n');
         });
         state = ready;
         // Pipes carry ownership: host exit closes stdin and the child shuts down.

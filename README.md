@@ -5,21 +5,20 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.2.0**。推荐只安装这一个插件，启用 **`our-free-model`** 统一供应商。
+版本 **0.3.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名渠道与账号渠道。
 原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
 随包保存在 `vendor/ofm/`。57 个保留文件中 54 个保持原始字节；3 个有明确适配改动：
-移除内置 Google OAuth 默认凭据、将 EAC 凭据模块替换为空实现、增加可选本机 EAC 来源入口。
+移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加可选本机 EAC 来源入口。
 两个 EAC 加密凭据数据文件不随包分发。原始 SHA-256、改动摘要和省略清单见 `vendor/ofm/UPSTREAM.json`。
 运行时不下载原项目、不执行远程安装脚本、不需要另外安装 DSH。
 
 ## 一体化安装与使用（推荐）
 
-1. 安装 **Node.js 22.19+ 或 24+**。Magpie 自带 Bun，但原渠道 Worker 需要 Node；插件会自动检查。
-2. 从本仓库 Code → Download ZIP 解压，或执行下方 `git clone`。把项目目录放到固定位置。
-3. 在 Magpie 插件页面添加该目录，启用插件。
-4. 在 **Our Free Model · 一体化（全部渠道）** 供应商点击 **启用全部渠道 / 打开账号管理控制台**。
+1. 从本仓库 Code → Download ZIP 解压，或执行下方 `git clone`。把项目目录放到固定位置。
+2. 在 Magpie 插件页面添加该目录，启用插件；不需要 `npm install` 或编译。
+3. 在 **Our Free Model** 供应商点击 **启用全部渠道 / 打开账号管理控制台**。
    插件自动启动随包携带的服务，并打开本机网页控制台；无需填写本地 API Key。
-5. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 先配置下方的本机原项目来源，再在控制台完成原项目的 GitHub 授权；
+4. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 先配置下方的本机原项目来源，再在控制台完成原项目的 GitHub 授权；
    账号渠道在控制台分别登录，完成后回 Magpie 刷新模型，并为 Agent 选用 `our-free-model` 下的模型。
 
 ```sh
@@ -35,10 +34,10 @@ magpie plugin add ./magpie-our-free-model
 
 ### 一体化版本覆盖范围
 
-| 功能 | 0.2.0 的实现与位置 |
+| 功能 | 实现与位置 |
 |---|---|
 | 匿名 Zen 与 Kilo 免费池 | 统一供应商发现模型和推理，沿用原项目路由 |
-| 十三个账号渠道的实现 | CodeArts、CodeBuddy、WorkBuddy 国际版、LobsterAI、Qoder、Qoder 中国版、TRAE、Cline、Loomy、Raccoon、MiniMax Code、ZCode、Gemini；**Gemini 需额外配置自有 OAuth 客户端** |
+| 十三个账号渠道的实现 | CodeArts、CodeBuddy、WorkBuddy 国际版、LobsterAI、Qoder、Qoder 中国版、TRAE、Cline、Loomy、Raccoon、MiniMax Code、ZCode、Gemini；**Gemini 需额外配置自有 OAuth 客户端，Loomy 微信扫码需额外配置 App ID** |
 | 渠道登录、账号池、轮换和续期 | 原项目渠道后端与控制台；账号凭据只保存在本机 |
 | 签到/领取积分、模型开关、积分锁定、账本与备份 | 原控制台与渠道实现；供应商停用及模型停用会阻止实际调用 |
 | EAC 登录、Star 校验、资源池 | 可选本机原项目来源及原服务端授权；凭据材料不公开打包，不修改服务端校验逻辑 |
@@ -53,6 +52,65 @@ magpie plugin add ./magpie-our-free-model
 本机服务只监听回环地址；更新此仓库后需通过 Magpie 重载插件或重启。
 原项目的 OpenCode 账号渠道仍默认停用。
 没有逐家使用真实账号验收，也不保证上游模型、登录接口和免费额度一直有效。
+
+### Node 自动安装
+
+Magpie 提供 Bun，但原项目渠道 Worker 需要 Node。插件先使用可用的 **Node.js 22.19+ 或 24+**；
+服务器没有合适的 Node 时，首次启用自动从 **nodejs.org** 下载固定版本 **24.21.0**，
+使用代码中固定的官方 SHA-256 校验，通过后解压并检查能否运行，再启动服务。
+安装到数据目录的 `runtime/`，之后直接复用；无需 root、不改系统 Node/PATH、不执行远程安装脚本。
+首次下载约 50–65 MB，需要访问 nodejs.org，解压后占用更多磁盘空间。
+Linux/macOS 需要系统自带的 `tar`。支持 Linux x64/arm64、macOS x64/arm64 和 Windows x64/arm64；
+Alpine 自动安装目前支持 x64。Windows/macOS 尚未实机验收。
+下载失败、架构不支持或系统 libc 不兼容时会显示原因，修复后可重试，或指定已安装的 `managed.nodePath`。
+显式设置了 `nodePath` 时会使用该路径；路径无效会报错，避免悄悄替换你指定的运行环境。
+可设 `managed.autoInstallNode: false` 关闭自动下载。
+官方运行环境与许可来自 [Node.js](https://nodejs.org/)；Unix 压缩包中的许可随运行环境保留。
+
+### 更新已有版本
+
+路径安装可在仓库目录运行 `git pull --ff-only`，随后完全退出并重启 Magpie，重新读取包名和入口。
+ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录。
+升级后主入口不再注册 `our-free-zen`、`our-free-kilo`、`our-free-local`；它们原有登录数据不会被插件删除。
+若 Agent 仍选用了这些旧 ID，请改选 **Our Free Model** 下的模型。
+若界面仍保留旧行，先重载插件；必要时移除旧插件条目，再添加同一目录。
+
+### 服务器部署与浏览器控制台
+
+自动安装会在 **Magpie 所在服务器** 完成。管理服务仍只监听回环地址。
+在自己电脑上打开控制台时，需要 SSH 转发管理服务和一次性交接服务两个端口。
+可设置固定端口，避免每次查找交接端口：
+
+```json
+{ "managed": { "port": 18900, "consolePort": 18901 } }
+```
+
+重启服务器上的 Magpie，在你电脑的终端执行：
+
+```sh
+ssh -N -L 18900:127.0.0.1:18900 -L 18901:127.0.0.1:18901 your-user@your-server
+```
+
+保持这个终端运行，再打开 Magpie 给出的 `http://127.0.0.1:18901/open/…` 链接；
+浏览器随后跳转到本机 18900，经 SSH 到达服务器控制台。交接链接只能使用一次，失效后重新生成。
+两端对应端口需空闲；服务端 18900 若被占用会选择其他端口，以实际地址为准并调整转发。
+部分账号渠道还依赖浏览器登录或其他回调端口，应按该渠道提示额外转发；Node 自动安装不会替你登录厂商账号。
+
+### Loomy 微信扫码的额外配置
+
+GitHub 告警中的 WeChat App ID 来自上游 Loomy 的微信二维码登录 URL，并非读取你的本机账号后上传。
+本仓库已经移除这一固定值，未将它拆分或编码隐藏。Loomy 微信扫码登录需要本机显式配置。
+在一体化数据目录保存 `loomy-wechat.json`，重启 Magpie：
+
+```json
+{ "appId": "YOUR_AUTHORIZED_LOOMY_WECHAT_APP_ID" }
+```
+
+也可在启动 Magpie 前设置 `OFM_LOOMY_WECHAT_APP_ID`。
+该 ID 必须与 Loomy 现有回调服务匹配；随意创建一个微信应用 ID 不保证可用。
+未配置时扫码会给出明确错误，其他渠道不受影响。此配置与真实 Loomy 微信登录尚未验收。
+该文件不要放入源码或提交到 GitHub。旧提交的扫描告警需在 GitHub 安全页面单独审核处理；
+最新代码移除固定值不会抹除 Git 历史。
 
 ### Gemini 的额外配置
 
@@ -96,14 +154,11 @@ GitHub 的仓库密钥检查拦截了上游渠道包中的固定 Google OAuth �
 退出供应商登录会停止该账号在 Magpie 中的访问；Magpie 没有调用插件退出钩子，
 已启动的本机服务会继续存在至宿主退出，仍可从控制台退出具体渠道账号。
 
-插件选项示例（`nodePath` 可省略；自动从 PATH 查找 Node）：
+插件选项示例（全部可省略，默认自动准备运行环境）：
 
 ```json
 {
-  "managed": { "nodePath": "/absolute/path/to/node", "dataDir": "/absolute/path/to/ofm-data", "port": 18900 },
-  "zen": false,
-  "kilo": false,
-  "local": false
+  "managed": { "autoInstallNode": true, "dataDir": "/absolute/path/to/ofm-data", "port": 18900, "consolePort": 18901 }
 }
 ```
 
@@ -112,73 +167,24 @@ Windows 的 `nodePath` 在 JSON 中例如 `C:\\Program Files\\nodejs\\node.exe`�
 修改 `managed` 的运行设置后重启 Magpie。同一个数据目录只允许一个服务实例。
 若上次被强制关闭，插件只会清理经 PID 检查确认已停止的本产品锁文件。
 
-## 兼容供应商（已有 0.1.0 安装可继续使用）
+## 可选兼容入口（默认不加载）
 
-下面三个供应商属于同一个安装包，用于不启动内置服务或连接已有外部服务；
-它们不需要同时登录。新用户优先选择上面的 `our-free-model`。
+旧的三个独立供应商保存在 `compatibility.mjs`，仅供需要直接连接 Zen/Kilo 或已有外部服务的高级用法。
+它们不由正常插件入口加载。只有主动添加这个文件才会显示三个供应商：
 
-| 供应商 ID | 功能 | 需要什么 |
+```sh
+magpie plugin add /absolute/path/magpie-our-free-model/compatibility.mjs
+```
+
+| 供应商 ID | 功能 | 登录 |
 |---|---|---|
-| `our-free-zen` | OpenCode Zen 免费模型，原生 Chat Completions / Responses / Anthropic Messages | 启用免费访问，填写 `public`；不需要个人 API Key |
-| `our-free-kilo` | Kilo 免费池，动态筛选 `isFree: true`，支持推理档位 | 启用免费访问，填写 `public`；不会向 Kilo 发送这个标记 |
-| `our-free-local` | 可选：连接原项目独立服务里的 EAC / 十三个账号渠道 | 原项目独立服务、本机地址及其 API Key |
+| `our-free-zen` | Zen 免费模型，原生 Chat / Responses / Anthropic | 免费访问标记 `public` |
+| `our-free-kilo` | Kilo 免费池，支持推理档位 | 免费访问标记 `public` |
+| `our-free-local` | 连接已有原项目独立服务 | 回环地址及该服务 API Key |
 
-Zen 和 Kilo 直接请求各自上游，不需要安装 DSH，也不需要启动独立服务。
-本机桥接是可选功能；EAC 和账号渠道的登录、续期、签到仍由原项目独立服务处理，
-这三个兼容入口不管理账号；0.2.0 的账号管理由上面的一体化入口提供。
-
-## 兼容入口安装（图形界面）
-
-1. 在本仓库点击 Code → Download ZIP 并解压。
-2. 将解压后的项目文件夹放到固定位置；Magpie 会就地加载，之后不要删除或移动它。
-3. 在 Magpie 的 Plugins / 插件 页面选择 Add a plugin / 添加插件，填写该文件夹的完整路径。
-   选的是包含 `package.json` 和 `index.mjs` 的文件夹，不是 ZIP 文件。
-4. 在 `our-free-zen` 和 `our-free-kilo` 的供应商行启用登录，密钥栏填写 `public`。
-   这里是免费渠道的激活标记，不需要注册账号或申请个人密钥。
-5. 刷新模型列表，给你的 Agent 选择对应供应商下的模型。
-
-插件文件已经是可执行 ESM，无需 `npm install`、无需编译。
-Magpie 本身会按自己的流程准备 Bun 插件运行时。
-
-## 兼容入口安装（终端）
-
-从 GitHub 克隆后，运行：
-
-```sh
-git clone https://github.com/mu-zi-lee/magpie-our-free-model.git
-magpie plugin add ./magpie-our-free-model
-magpie plugin login our-free-zen
-magpie plugin login our-free-kilo
-magpie plugin --json
-```
-
-已经克隆过时不必再次执行 `git clone`。使用 ZIP 时，将 `plugin add` 的路径换成实际解压目录。
-
-登录时填写 `public`。随后测试：
-
-```sh
-magpie provider test our-free-zen
-magpie provider test our-free-kilo
-```
-
-测试会向真实上游发送小请求，受到网络、地区和上游限流影响。
-模型 ID 来自实时清单，不能保证某个固定模型一直存在。
-
-## 接入 EAC 和账号渠道（可选）
-
-1. 获取原项目完整源码：https://github.com/Ebony-Vinyl/dsh-our-free-model
-2. 按该项目要求安装 Node.js，在原项目根目录执行 `npm run start:standalone`。
-   其独立安装制品尚未发布，不能只复制 `packages/standalone` 目录来运行。
-3. 打开终端打印的独立控制台链接，在控制台完成 EAC 授权或需要的渠道登录。
-4. 在控制台的 API 接入页面取得实际地址和 API Key。默认地址通常为
-   `http://127.0.0.1:18900/v1`，端口占用时以控制台显示为准。
-5. 运行 `magpie plugin login our-free-local`，按提示填写本机服务地址和该服务的 API Key。
-6. 刷新模型列表；`our-free-local` 下会出现独立服务当前提供的模型。
-
-独立服务需与 Magpie 在同一台电脑运行。此插件仅接受 localhost、127.0.0.1 或 ::1；
-不读取原项目密钥文件，不自动启动服务，不内置 EAC 签名材料。
-本机桥接的 `/models` 元数据有限，未知能力采用保守值；本版不为它宣称图片支持或推理档位。
-图文或高级推理需求优先使用原生 Zen/Kilo，或在本机服务完成具体模型验证后扩展能力。
+兼容入口选项 `zen`、`kilo`、`local` 可为配置对象或 `false`。
+这里的 Zen 实际服务仍为 OpenCode Zen；厂商端点、协议标识与第三方来源不会因本插件改名而改变。
+截图中的 `opencode-doubao-translate` 是另一个插件，不在本仓库中。
 
 ## 已实现
 
@@ -194,29 +200,6 @@ magpie provider test our-free-kilo
 免费模型列表不等于无限额度。插件没有厂商的剩余额度数据，`quota` 不会伪造百分比。
 Kilo 免费池的提示词可能被上游记录；对话、工具定义与结果会发往对应模型服务。
 插件不写入对话日志，不自动创建账号或绕过账号授权。
-
-## 设置与升级
-
-可关闭某一供应商：
-
-```sh
-magpie plugin options /absolute/path/magpie-our-free-model '{"local": false}'
-```
-
-把路径替换为实际安装路径。Windows PowerShell 的引号规则不同，可在 Magpie 设置界面编辑同一 JSON。
-插件第二参数支持 `zen`、`kilo`、`local`：每项可为 `false` 或配置对象。
-配置示例：
-
-```json
-{
-  "zen": {},
-  "kilo": {},
-  "local": { "baseURL": "http://127.0.0.1:18901/v1" }
-}
-```
-
-已有本机账号登录时保存的地址优先于 `local.baseURL`；地址变化后重新登录或重载。
-以路径安装后，更换源码可通过插件开关重载。此包尚未发布到 npm，不能用它的包名从 npm 安装。
 
 ## 开发与验证
 

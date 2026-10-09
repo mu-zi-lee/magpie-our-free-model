@@ -44,6 +44,12 @@ lines.once('line', async line => {
       process.env.CMDC_PAK_GOOGLE_CLIENT_ID = google.clientId.trim();
       process.env.CMDC_PAK_GOOGLE_CLIENT_SECRET = google.clientSecret.trim();
     }
+    const wechatFile = path.join(settings.dataDir, 'loomy-wechat.json');
+    if (fs.existsSync(wechatFile)) {
+      const wechat = JSON.parse(fs.readFileSync(wechatFile, 'utf8'));
+      if (typeof wechat.appId !== 'string' || !wechat.appId.trim()) throw new Error('loomy-wechat.json 需要非空 appId');
+      process.env.OFM_LOOMY_WECHAT_APP_ID = wechat.appId.trim();
+    }
     const lock = path.join(settings.dataDir, 'service.lock');
     // Recover only this service's dead-process lock, never a live or unknown lock.
     if (fs.existsSync(lock)) {
@@ -55,7 +61,7 @@ lines.once('line', async line => {
     }
     service = await startStandalone({ dataDir: settings.dataDir, port: settings.port,
       refresh: settings.refresh !== false, eacCredential, logger: { info() {}, warn() {}, error() {} } });
-    consoleHandoff = await createConsoleHandoff(service);
+    consoleHandoff = await createConsoleHandoff(service, settings.consolePort);
     if (process.stdin.readableEnded) return stop();
     process.stdout.write(JSON.stringify({ type: 'ready', url: service.url,
       keyFile: service.keyFile, pid: process.pid }) + '\n');
