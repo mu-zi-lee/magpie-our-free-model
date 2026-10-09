@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import { createRemoteLogin } from './remote-login.mjs';
 
 const COOKIE = '__Host-ofm_remote';
 const HEADERS = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer',
@@ -16,9 +17,10 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
   const sessions = new Map();
   const upstreamSessions = new Set();
   const upstream = new URL(service.url);
+  const login = createRemoteLogin({ now });
   const prune = () => {
     for (const [key, until] of tickets) if (until <= now()) tickets.delete(key);
-    for (const [key, value] of sessions) if (value.until <= now()) sessions.delete(key);
+    for (const [key, value] of sessions) if (value.until <= now()) { sessions.delete(key); login.clear(key); }
   };
   const cookieValue = req => String(req.headers.cookie ?? '').split(';').map(x => x.trim())
     .find(x => x.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
@@ -76,12 +78,13 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
       if (!session) return fail(res, 401, '请通过 Magpie 生成的一次性链接进入远程控制台');
       if (target.pathname === '/remote/close') {
         if (req.method !== 'POST' || req.headers.origin !== origin) return fail(res, 403, '请在控制台点击结束远程访问');
-        sessions.clear(); tickets.clear();
+        sessions.clear(); tickets.clear(); login.clear();
         closeAfterResponse(res);
         res.writeHead(200, { ...HEADERS, 'content-type': 'text/plain; charset=utf-8',
           'set-cookie': `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0` });
         return res.end('远程通道已关闭，可以关闭此页面。Magpie 的模型服务继续运行。');
       }
+      if (await login.handle(req, res, target, id, origin)) return;
       const asset = target.pathname === '/' || /^\/assets\/[\w-]+\.(js|css)$/.test(target.pathname);
       const api = /^\/api\/management\/[\w/-]+$/.test(target.pathname);
       if (!asset && !api || ['/api/management/session', '/api/management/login/terminal'].includes(target.pathname)) {
@@ -89,6 +92,8 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
       }
       if (asset && !['GET', 'HEAD'].includes(req.method) || api && !['GET', 'POST'].includes(req.method)) return fail(res, 405, '不支持的请求方法');
       const headers = { host: upstream.host, cookie: session.cookie, origin: service.url, referer: `${service.url}/`, 'sec-fetch-site': 'same-origin' };
+      const channelRpc = target.pathname === '/api/management/channels/rpc' && req.method === 'POST';
+      const callChunks = [];
       for (const name of ['content-type', 'accept']) if (req.headers[name]) headers[name] = req.headers[name];
       const out = http.request(new URL(target.pathname + target.search, upstream), { method: req.method, headers }, back => {
         const returned = {};
@@ -101,12 +106,29 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
           back.setEncoding('utf8');
           back.on('data', chunk => { html += chunk; });
           back.on('end', () => {
-            const banner = '<aside style="padding:12px;background:#182b3a;color:#fff;font:14px sans-serif">临时远程控制台：通道最多开放 30 分钟。完成账号管理后请关闭。<form method="post" action="/remote/close" style="display:inline;margin-left:12px"><button type="submit">结束远程访问</button></form></aside>';
+            const banner = '<aside>临时远程控制台：通道最多开放 30 分钟。完成账号管理后请关闭。<form method="post" action="/remote/close"><button type="submit">结束远程访问</button></form>' + login.html + '</aside>';
             res.writeHead(200, returned); res.end(html.replace('<body>', `<body>${banner}`));
+          });
+        } else if (channelRpc && back.statusCode === 200) {
+          const chunks = []; let size = 0;
+          back.on('data', chunk => {
+            size += chunk.length;
+            if (size > 8 * 1024 * 1024) { back.destroy(); return fail(res, 502, '渠道响应过大'); }
+            chunks.push(chunk);
+          });
+          back.on('end', () => {
+            if (res.headersSent) return;
+            const raw = Buffer.concat(chunks);
+            let result = raw;
+            try {
+              const call = JSON.parse(Buffer.concat(callChunks).toString('utf8'));
+              result = JSON.stringify(login.decorate(JSON.parse(raw.toString('utf8')), id, origin, call));
+            } catch { /* Preserve unrelated native RPC replies. */ }
+            res.writeHead(200, returned); res.end(result);
           });
         } else {
           if (target.pathname === '/api/management/logout' && req.method === 'POST' && back.statusCode < 300) {
-            upstreamSessions.delete(session.cookie); sessions.delete(id); closeAfterResponse(res);
+            upstreamSessions.delete(session.cookie); sessions.delete(id); login.clear(id); closeAfterResponse(res);
           }
           res.writeHead(back.statusCode, returned); back.pipe(res);
         }
@@ -118,6 +140,8 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
       let bytes = 0;
       req.on('data', chunk => {
         bytes += chunk.length;
+        if (channelRpc && bytes <= 16384) callChunks.push(chunk);
+        else if (channelRpc) callChunks.length = 0;
         if (bytes > 8 * 1024 * 1024) { out.destroy(); if (!res.headersSent) fail(res, 413, '请求内容过大'); }
       });
       req.pipe(out);
@@ -140,7 +164,7 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
       return `${origin}/open/${token}`;
     },
     async close() {
-      closed = true; tickets.clear(); sessions.clear(); server.closeAllConnections();
+      closed = true; tickets.clear(); sessions.clear(); login.clear(); server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
       // Reopening remote access must not consume the upstream's 64 session slots.
       const cookies = [...upstreamSessions]; upstreamSessions.clear();

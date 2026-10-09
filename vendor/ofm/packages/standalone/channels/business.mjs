@@ -46956,9 +46956,8 @@ var LOOMY_WECHAT_POLL_STATUS = Object.freeze({
 var WECHAT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 var UUID_PATTERN = /^[A-Za-z0-9_\-=+/]{6,64}$/;
 function buildLoomyWechatAuthUrl(state) {
-  const appId = process.env.OFM_LOOMY_WECHAT_APP_ID?.trim();
-  if (!appId) throw new Error("Loomy 微信扫码需要本机 App ID 配置；请参考 Magpie 插件 README 的 Loomy 配置说明。");
-  return `https://open.weixin.qq.com/connect/qrconnect?appid=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(LOOMY_WECHAT_REDIRECT_URI)}&response_type=code&scope=snsapi_login&state=${encodeURIComponent(state)}#wechat_redirect`;
+  throw new Error("Loomy 原渠道包未加载；请启用 managed.autoInstallChannels 后重启 Magpie。");
+  return `https://open.weixin.qq.com/connect/qrconnect?appid=${encodeURIComponent(LOOMY_WECHAT_APP_ID)}&redirect_uri=${encodeURIComponent(LOOMY_WECHAT_REDIRECT_URI)}&response_type=code&scope=snsapi_login&state=${encodeURIComponent(state)}#wechat_redirect`;
 }
 function extractLoomyWechatUuid(html) {
   if (typeof html !== "string" || html.length === 0) return "";
@@ -65991,12 +65990,12 @@ var GeminiLoginExpiredError = class extends Error {
 };
 function geminiClientId() {
   const fromEnv = process.env.CMDC_PAK_GOOGLE_CLIENT_ID?.trim();
-  if (!fromEnv) throw new Error("Gemini 需要自己的 Google OAuth 客户端配置；请参考本插件 README 的 Gemini 配置说明。");
+  if (!fromEnv) throw new Error("Gemini 原渠道包未加载；请启用 managed.autoInstallChannels 后重启 Magpie。");
   return fromEnv;
 }
 function geminiClientSecret() {
   const fromEnv = process.env.CMDC_PAK_GOOGLE_CLIENT_SECRET?.trim();
-  if (!fromEnv) throw new Error("Gemini 需要自己的 Google OAuth 客户端配置；请参考本插件 README 的 Gemini 配置说明。");
+  if (!fromEnv) throw new Error("Gemini 原渠道包未加载；请启用 managed.autoInstallChannels 后重启 Magpie。");
   return fromEnv;
 }
 function buildGeminiAuthUrl(flow) {

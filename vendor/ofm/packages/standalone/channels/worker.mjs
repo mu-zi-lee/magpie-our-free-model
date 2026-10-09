@@ -1,11 +1,11 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { createCredentials } from './credentials.mjs'
 import { attachments } from './images.mjs'
-import {
+const {
   apply, toGenerateOptions, toResponsesGenerateOptions, normalizeReasoningEffort,
   responsesReasoningEffort, normalizeMaxTokens, responsesMaxOutputTokens, markGatewayChannel,
   collectGatewayModels, collectGatewayEffortViews, toOpenAiModels,
-} from './business.mjs'
+} = await import(workerData.businessPath ?? new URL('./business.mjs', import.meta.url).href)
 
 const cleanups = []
 const adapters = new Map()

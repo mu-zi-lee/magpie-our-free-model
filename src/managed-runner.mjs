@@ -6,6 +6,7 @@ import { startStandalone } from '../vendor/ofm/packages/standalone/service.mjs';
 import { effortsFor } from '../vendor/ofm/src/effort.js';
 import { createConsoleHandoff } from './managed-console.mjs';
 import { loadEacSource } from './eac-source.mjs';
+import { channelBusinessUrl } from './channel-source.mjs';
 import { createTailscaleConsole, remoteByDefault } from './tailscale-console.mjs';
 
 let service;
@@ -35,23 +36,7 @@ lines.once('line', async line => {
   try {
     const settings = JSON.parse(line);
     runnerSettings = settings;
-    const eacSource = await loadEacSource(settings);
-    const googleFile = path.join(settings.dataDir, 'gemini-oauth.json');
-    if (fs.existsSync(googleFile)) {
-      const google = JSON.parse(fs.readFileSync(googleFile, 'utf8'));
-      if (typeof google.clientId !== 'string' || !google.clientId.trim() ||
-          typeof google.clientSecret !== 'string' || !google.clientSecret.trim()) {
-        throw new Error('gemini-oauth.json 需要非空 clientId 和 clientSecret');
-      }
-      process.env.CMDC_PAK_GOOGLE_CLIENT_ID = google.clientId.trim();
-      process.env.CMDC_PAK_GOOGLE_CLIENT_SECRET = google.clientSecret.trim();
-    }
-    const wechatFile = path.join(settings.dataDir, 'loomy-wechat.json');
-    if (fs.existsSync(wechatFile)) {
-      const wechat = JSON.parse(fs.readFileSync(wechatFile, 'utf8'));
-      if (typeof wechat.appId !== 'string' || !wechat.appId.trim()) throw new Error('loomy-wechat.json 需要非空 appId');
-      process.env.OFM_LOOMY_WECHAT_APP_ID = wechat.appId.trim();
-    }
+    const [eacSource, channelBusiness] = await Promise.all([loadEacSource(settings), channelBusinessUrl(settings)]);
     const lock = path.join(settings.dataDir, 'service.lock');
     // Recover only this service's dead-process lock, never a live or unknown lock.
     if (fs.existsSync(lock)) {
@@ -62,7 +47,7 @@ lines.once('line', async line => {
       }
     }
     service = await startStandalone({ dataDir: settings.dataDir, port: settings.port,
-      refresh: settings.refresh !== false, eacCredential: eacSource.credentialOf, eacSetup: eacSource.setup,
+      channelBusiness, refresh: settings.refresh !== false, eacCredential: eacSource.credentialOf, eacSetup: eacSource.setup,
       logger: { info() {}, warn() {}, error() {} } });
     consoleHandoff = await createConsoleHandoff(service, settings.consolePort);
     if (process.stdin.readableEnded) return stop();

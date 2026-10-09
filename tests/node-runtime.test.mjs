@@ -95,13 +95,13 @@ test('available system Node is preferred without contacting a download server', 
   assert.equal(await probeNode('old-node', {}, async () => ({ stdout: '{"version":"22.18.0","bun":false}' })), undefined);
 });
 
-test('WeChat patch removes the embedded default, requires local config and preserves callback', () => {
+test('distribution fallback omits WeChat defaults and has no extra local App ID override', () => {
   const input = 'var LOOMY_WECHAT_APP_ID = "fixture-public-app";\nfunction buildLoomyWechatAuthUrl(state) {\nreturn encodeURIComponent(LOOMY_WECHAT_APP_ID);\n}';
   const patched = removeEmbeddedWechatDefault(input);
   assert.ok(!patched.includes('fixture-public-app'));
   const build = new Function('process', `${patched}; return buildLoomyWechatAuthUrl;`);
-  assert.throws(() => build({ env: {} })('fixture-state'), /本机 App ID/);
-  assert.equal(build({ env: { OFM_LOOMY_WECHAT_APP_ID: ' configured-app ' } })('state'), 'configured-app');
+  assert.throws(() => build({ env: {} })('fixture-state'), /原渠道包未加载/);
+  assert.throws(() => build({ env: { OFM_LOOMY_WECHAT_APP_ID: ' configured-app ' } })('state'), /原渠道包未加载/);
   assert.throws(() => removeEmbeddedWechatDefault('upstream changed'), /definition changed/);
   assert.equal(typeof removeEmbeddedOAuthDefaults, 'function');
 });

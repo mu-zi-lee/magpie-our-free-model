@@ -4,9 +4,9 @@ import { foldForwardOutcome } from '../../../src/core/completion.js'
 import { recordTurn, recordUsage } from '../../../src/store.js'
 
 /** 一实例一 Worker，避免原渠道业务的模块单例串目录、串账号。 */
-export async function createChannelRuntime({ dataDir, logger = console, stats }) {
+export async function createChannelRuntime({ dataDir, logger = console, stats, businessPath }) {
   const worker = new Worker(new URL('./worker.mjs', import.meta.url), {
-    workerData: { dataDir },
+    workerData: { dataDir, businessPath },
     execArgv: process.execArgv.filter(arg => !arg.startsWith('--input-type')),
     env: { ...process.env, OFM_CODEARTS_CACHE_DIR: path.join(dataDir, 'channel-pack', 'codearts-cache') },
   })

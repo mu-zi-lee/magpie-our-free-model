@@ -49,7 +49,7 @@ async function run(args, input = '') {
 try {
   await run(['plugin', 'add', project]);
   await run(['plugin', 'options', project, JSON.stringify({
-    managed: { dataDir, nodePath, refresh: false, consoleAccess: 'local', autoInstallEac: false } })]);
+    managed: { dataDir, nodePath, refresh: false, consoleAccess: 'local', autoInstallChannels: false, autoInstallEac: false } })]);
   const login = await run(['plugin', 'login', 'our-free-model'], '1\n\n');
   console.log(login.out.trim());
   const { out } = await run(['plugin', '--json']);

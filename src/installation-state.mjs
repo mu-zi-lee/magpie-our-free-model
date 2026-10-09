@@ -12,7 +12,7 @@ const packageDir = fileURLToPath(new URL('../', import.meta.url));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const files = ['settings.json', 'stats.json', 'availability.json', 'catalog.json',
   'channel-credentials.json', 'eac-user.json', 'gemini-oauth.json', 'loomy-wechat.json', 'service.lock'];
-const runtimeName = name => /^(?:node-v\d+\.\d+\.\d+-[a-z0-9-]+|tailscale-\d+\.\d+\.\d+-[a-z0-9-]+|eac-[a-f0-9]{40}|\.(?:node|tailscale|eac)-install-[a-zA-Z0-9]+)$/.test(name);
+const runtimeName = name => /^(?:node-v\d+\.\d+\.\d+-[a-z0-9-]+|tailscale-\d+\.\d+\.\d+-[a-z0-9-]+|(?:eac|channels)-[a-f0-9]{40}|\.(?:node|tailscale|eac|channels)-install-[a-zA-Z0-9]+)$/.test(name);
 
 export function validateDataDir(dataDir, directory) {
   for (const protectedDir of [path.parse(dataDir).root, os.homedir(), path.resolve(directory), packageDir]) {

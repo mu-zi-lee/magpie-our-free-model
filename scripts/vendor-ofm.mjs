@@ -5,6 +5,8 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { removeEmbeddedOAuthDefaults, externalizeEacCredentials } from './ofm-google-config-patch.mjs';
+import { patchChannelSource } from './ofm-channel-source-patch.mjs';
+import { patchEacDiagnostics, patchEacSetupUi } from './ofm-eac-setup-patch.mjs';
 
 const pin = 'f8974369c5904858c696b520d8b9b82ad4425f78';
 const root = path.resolve(process.argv[2] || '');
@@ -38,7 +40,22 @@ for (const name of [...files].sort()) {
 }
 const adaptation = removeEmbeddedOAuthDefaults(dest);
 const eacAdaptations = externalizeEacCredentials(dest);
+const adaptations = [adaptation, ...eacAdaptations];
+const digest = content => crypto.createHash('sha256').update(content).digest('hex');
+for (const [file, patch, reason] of [
+  ['packages/standalone/eac.mjs', patchEacDiagnostics, 'Expose safe EAC installation diagnostics.'],
+  ['packages/standalone/web/app.js', patchEacSetupUi, 'Display safe EAC installation diagnostics.'],
+  ...['packages/standalone/service.mjs', 'packages/standalone/channels/runtime.mjs', 'packages/standalone/channels/worker.mjs']
+    .map(file => [file, source => patchChannelSource(file, source), 'Select verified unchanged upstream channel business in the Worker.']),
+]) {
+  const target = path.join(dest, file);
+  const updated = patch(fs.readFileSync(target, 'utf8'));
+  fs.writeFileSync(target, updated);
+  const existing = adaptations.find(row => row.path === file);
+  if (existing) { existing.sha256 = digest(updated); existing.reason += ` ${reason}`; }
+  else adaptations.push({ path: file, originalSha256: manifest.find(row => row.path === file).sha256, sha256: digest(updated), reason });
+}
 const omitted = ['src/vault-data.js', 'src/vault-anchor.js'];
 fs.writeFileSync(path.join(dest, 'UPSTREAM.json'), JSON.stringify({ repository: 'https://github.com/Ebony-Vinyl/dsh-our-free-model', commit: pin,
-  files: manifest.filter(file => !omitted.includes(file.path)), omitted, adaptations: [adaptation, ...eacAdaptations] }, null, 2) + '\n');
+  files: manifest.filter(file => !omitted.includes(file.path)), omitted, adaptations }, null, 2) + '\n');
 console.log('Copied runtime without embedded OAuth/EAC defaults; recorded all adaptations');

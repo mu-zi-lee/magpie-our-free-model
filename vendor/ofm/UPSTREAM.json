@@ -292,8 +292,8 @@
     {
       "path": "packages/standalone/channels/business.mjs",
       "originalSha256": "68c36b1eb48bb5f24ad0fdfb90fc71172b6babeae65aac2bbc5eae935442732d",
-      "sha256": "b1dd2fe5be5f4408fc46338fb77ddbfd380975616cec8ce4a6a8b1c9b6ff2b4d",
-      "reason": "Remove bundled Google OAuth defaults and Loomy WeChat App ID; require private local configuration. Google uses existing environment overrides; Loomy uses OFM_LOOMY_WECHAT_APP_ID."
+      "sha256": "88abf6137f1ff7c5c9c226a218ead3ef9426c9a5d62f97cca760e2a7143e3e6d",
+      "reason": "Distribution-only fallback omits upstream Google/WeChat defaults. Normal startup loads the verified original complete bundle unchanged; no custom local OAuth/App ID configuration is added."
     },
     {
       "path": "src/vault.js",
@@ -304,8 +304,8 @@
     {
       "path": "packages/standalone/service.mjs",
       "originalSha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3",
-      "sha256": "dee0cb85e95a15da909e7b2ea0adebff89916b4a22b1bd333a4685cfcb8b1188",
-      "reason": "Accept an original EAC credential function and safe setup diagnostics; preserve server authorization and login flow."
+      "sha256": "6f456934e50328dcc5fde78f8dc9dcc9a09951d65dfc91fb10d1a9a165887a89",
+      "reason": "Accept an original EAC credential function and safe setup diagnostics; preserve server authorization and login flow. Select the verified unchanged upstream channel bundle in the Worker; preserve original login, accounts and model logic."
     },
     {
       "path": "packages/standalone/eac.mjs",
@@ -318,6 +318,18 @@
       "originalSha256": "27d8ecdc5bc0cf7035b8f25602ba389cf9a5813d01595e15ddf199628b724cea",
       "sha256": "2d0c8d85872c93defb731d8dc147c0eae4880dd1d9d924cb5a4446efc20732ee",
       "reason": "Show EAC setup errors from authenticated status instead of an unsupported-host message."
+    },
+    {
+      "path": "packages/standalone/channels/runtime.mjs",
+      "originalSha256": "58b21b7b21780c3450d4181d78f4dede141e45d236f4efce6a772a11f9bd71fd",
+      "sha256": "2e210442418f1784bf5229f4d314842e62be77685a72f3e5af71d427ad755ad7",
+      "reason": "Select the verified unchanged upstream channel bundle in the Worker; preserve original login, accounts and model logic."
+    },
+    {
+      "path": "packages/standalone/channels/worker.mjs",
+      "originalSha256": "75601bec5d900b6d042458cead016308da05245df711d0c1f6c2d94b8b39a966",
+      "sha256": "caa8fddc98544bc6eb27b9405deb4d9e1492026b2d1e80ea5519075312f1006e",
+      "reason": "Select the verified unchanged upstream channel bundle in the Worker; preserve original login, accounts and model logic."
     }
   ],
   "omitted": [

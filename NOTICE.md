@@ -6,14 +6,14 @@ The full account-channel integration, standalone model runtime, EAC authorizatio
 statistics and local management UI are from **Ebony-Vinyl/dsh-our-free-model**:
 https://github.com/Ebony-Vinyl/dsh-our-free-model
 Pinned commit: f8974369c5904858c696b520d8b9b82ad4425f78 (2026-10-09).
-57 upstream runtime/asset/license paths are retained under vendor/ofm; 52 are
+57 upstream runtime/asset/license paths are retained under vendor/ofm; 50 are
 byte-for-byte copies. UPSTREAM.json records original and adapted hashes and the
-two omitted encrypted EAC data files. Five adaptations are documented: removing
+two omitted encrypted EAC data files. Seven adaptations are documented: removing
 bundled Google OAuth defaults and the Loomy WeChat App ID, replacing vault.js with an empty stub, and adding
-an original EAC credential function to the standalone service, plus safe setup diagnostics in the EAC backend and UI.
-The generator patches are scripts/ofm-google-config-patch.mjs and scripts/ofm-eac-setup-patch.mjs. These adaptations
+an original EAC credential function to the standalone service, plus safe setup diagnostics in the EAC backend and UI, and selecting a verified original channel bundle through the service/Worker.
+The generator patches are scripts/ofm-google-config-patch.mjs, scripts/ofm-eac-setup-patch.mjs and scripts/ofm-channel-source-patch.mjs. These adaptations
 avoid publishing credential material and comply with repository secret scanning.
-Gemini requires user-owned OAuth configuration; Loomy WeChat QR login requires private local App ID configuration. EAC installs the pinned original source in a private runtime cache by default; an explicitly selected local source overrides it. Server authorization/login/signature flow remains unchanged. No original vault decryption code, ciphertext or shards are distributed.
+Normal startup downloads the complete original channel bundle, contracts, Qoder WASM and licenses from the official pinned source, verifies all file sizes and SHA-256 digests and loads it unchanged from a private runtime cache. Native Gemini OAuth defaults and Loomy WeChat configuration are used directly from that bundle; no extra local OAuth/App ID files or Loomy environment overrides are read. The public distribution-only fallback omits these defaults. Downloaded channel source is removed on uninstall. The remote gateway relays the native Loomy login listener and permits a session-bound Gemini callback return while retaining the registered localhost redirect URI. EAC installs the pinned original source in a private runtime cache by default; an explicitly selected local source overrides it. Server authorization/login/signature flow remains unchanged. No original vault decryption code, ciphertext or shards are distributed.
 The integration uses the upstream's published standalone entry point.
 Original MIT license: vendor/ofm/LICENSE. Channel-pack attribution and MIT license:
 vendor/ofm/vendor/channel-pack/NOTICE.md and LICENSE. The channel pack's original

@@ -1,6 +1,6 @@
 {
   "name": "magpie-our-free-model",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Our Free Model for Magpie: free pools, automatic EAC setup, account management and temporary Tailscale console",
   "type": "module",
   "main": "./index.mjs",

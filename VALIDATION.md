@@ -1,4 +1,44 @@
-# Validation — 0.6.0
+# Validation — 0.7.0
+
+## Original channel bundle and remote callbacks — 2026-10-09
+
+- Downloaded all six original channel bundle/dependency/license files from upstream
+  commit `f8974369c5904858c696b520d8b9b82ad4425f78`; all pinned sizes and SHA-256
+  digests passed. The full original business module is loaded unchanged by the
+  existing standalone Worker. No original defaults are copied into the public package.
+- The runner no longer reads `gemini-oauth.json` or `loomy-wechat.json`. Invalid
+  legacy files do not prevent startup in the real managed service fixture.
+- Original-bundle validation uses real Node Worker, standalone management server,
+  remote authentication gateway, native Gemini callback listener and native Loomy
+  QR/poll listener. Vendor network replies are fixtures: original default Gemini
+  client starts login, callback returns through the gateway, native token exchange
+  persists refresh token and account identity; Loomy default App ID starts QR login,
+  QR HTML/poll paths are rewritten, and native account login/save completes.
+- The production managed runner also starts with the original bundle by default,
+  despite malformed legacy OAuth/App ID files; original Gemini login starts.
+- `npm test`: **213 passed, 0 failed, 2 skipped** (the original-bundle tests
+  require a separately downloaded source); that separate native run passed
+  **2/2**, so both skipped scenarios were exercised.
+- Node/Bun plugin contracts pass. Real Magpie/Bun CLI fixture completes add,
+  login, model discovery, inference and uninstall.
+- Downloader fixtures verify complete unmodified files, private permissions,
+  concurrent install, offline reuse, corruption repair, size/hash rejection,
+  symlink rejection and safe failures. Remote relay fixtures reject wrong origin,
+  session, port/path/state, duplicates, replay, expired/closed flows and unrelated
+  loopback routes; cookies and authorization headers are never forwarded.
+- Uninstall fixtures also cover versioned channel downloads and incomplete stages.
+- Real Google/WeChat account sign-in, vendor eligibility and live public Funnel
+  were not tested. Fixture success does not prove those external services accept
+  an account. All channel/model behavior remains pinned to the stated upstream version.
+
+Native bundle validation (requires an already downloaded verified original cache):
+
+```sh
+OFM_TEST_CHANNEL_SOURCE=/absolute/path/to/runtime/channels-f8974369c5904858c696b520d8b9b82ad4425f78 \
+  node --import ./tests/native-channel-fixture.mjs --test tests/native-channels.test.mjs
+```
+
+## Previous 0.6.0 validation record
 
 ## Automatic uninstall cleanup — 2026-10-09
 

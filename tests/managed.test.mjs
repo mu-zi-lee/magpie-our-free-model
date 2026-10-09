@@ -39,7 +39,7 @@ test('upstream runtime hashes match the declared snapshot and Google configurati
   assert.match(business, /var GEMINI_DEFAULT_CLIENT_SECRET = "";/);
   assert.match(business, /var LOOMY_WECHAT_APP_ID = "";/);
   assert.doesNotMatch(business, /wx[0-9a-f]{16}/);
-  assert.match(business, /encodeURIComponent\(appId\)/);
+  assert.doesNotMatch(business, /OFM_LOOMY_WECHAT_APP_ID/);
 });
 
 test('managed metadata preserves native effort ids and declared image/context capabilities', () => {
@@ -142,7 +142,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   `);
   const tailscalePath = path.join(dir, 'tailscale');
   fs.writeFileSync(tailscalePath, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(tailscaleScript)} "$@"\n`, { mode: 0o700 });
-  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir, consoleAccess: 'local', tailscalePath };
+  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir, consoleAccess: 'local', autoInstallChannels: false, tailscalePath };
   const runtime = getManagedRuntime(input, options);
   t.after(async () => {
     await runtime.close();
@@ -150,6 +150,9 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     for (const key of envKeys) { if (before[key] === undefined) delete process.env[key]; else process.env[key] = before[key]; }
     fs.rmSync(dir, { recursive: true, force: true });
   });
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.writeFileSync(path.join(dataDir, 'gemini-oauth.json'), 'invalid legacy custom configuration');
+  fs.writeFileSync(path.join(dataDir, 'loomy-wechat.json'), 'invalid legacy custom configuration');
   const plugin = await createManagedPlugin(input, options);
   const login = await plugin.auth.methods[0].authorize();
   const result = await login.callback();
@@ -167,7 +170,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   };
   await t.test('failed EAC source leaves the real service and free model catalog running', async () => {
     const isolated = getManagedRuntime({ directory: dir }, { dataDir: path.join(dir, 'eac-failure-data'), port: 0,
-      nodePath: wrapper, refresh: false, eacSourceDir: path.join(dir, 'missing-source'), consoleAccess: 'local' });
+      nodePath: wrapper, refresh: false, eacSourceDir: path.join(dir, 'missing-source'), autoInstallChannels: false, consoleAccess: 'local' });
     try {
       const connection = await isolated.connection();
       const status = await fetch(connection.base.replace(/\/v1$/, '') + '/api/management/eac/status',

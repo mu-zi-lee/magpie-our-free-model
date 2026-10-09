@@ -5,13 +5,13 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.6.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
+版本 **0.7.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
 插件图标使用 `assets/icon.png` 的无损 WebP 副本（像素和尺寸相同，满足 Magpie 的 1 MB 限制），随包加载，无需联网获取图标。
 原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
-随包保存在 `vendor/ofm/`。57 个保留文件中 52 个保持原始字节；5 个有明确适配改动：
-移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加 EAC 来源入口及安装诊断。
+随包保存在 `vendor/ofm/`。57 个保留文件中 50 个保持原始字节；7 个有明确适配改动：
+移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加 EAC 来源入口及安装诊断，以及原渠道包加载入口。
 两个 EAC 加密凭据数据文件不随包分发。原始 SHA-256、改动摘要和省略清单见 `vendor/ofm/UPSTREAM.json`。
-首次启用时从原项目下载固定版本的 EAC 来源模块与依赖，校验后缓存到本机；不执行远程安装脚本，不需要另外安装 DSH。
+首次启用时从原项目下载固定版本的完整渠道包、EAC 来源模块与依赖，校验后缓存到私有数据目录；不执行远程安装脚本，不需要另外安装 DSH。
 
 ## 一体化安装与使用（推荐）
 
@@ -38,7 +38,7 @@ magpie plugin add ./magpie-our-free-model
 | 功能 | 实现与位置 |
 |---|---|
 | 匿名 Zen 与 Kilo 免费池 | 统一供应商发现模型和推理，沿用原项目路由 |
-| 十三个账号渠道的实现 | CodeArts、CodeBuddy、WorkBuddy 国际版、LobsterAI、Qoder、Qoder 中国版、TRAE、Cline、Loomy、Raccoon、MiniMax Code、ZCode、Gemini；**Gemini 需额外配置自有 OAuth 客户端，Loomy 微信扫码需额外配置 App ID** |
+| 十三个账号渠道的实现 | CodeArts、CodeBuddy、WorkBuddy 国际版、LobsterAI、Qoder、Qoder 中国版、TRAE、Cline、Loomy、Raccoon、MiniMax Code、ZCode、Gemini；完整渠道包与默认登录配置直接来自原仓库 |
 | 渠道登录、账号池、轮换和续期 | 原项目渠道后端与控制台；账号凭据只保存在本机 |
 | 签到/领取积分、模型开关、积分锁定、账本与备份 | 原控制台与渠道实现；供应商停用及模型停用会阻止实际调用 |
 | EAC 登录、Star 校验、资源池 | 自动安装原项目固定版本来源（也可指定本机目录），沿用原服务端授权；不修改服务端校验逻辑 |
@@ -83,8 +83,8 @@ ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录�
 
 使用支持回调的 Magpie，在插件页面点击卸载，或运行 `magpie plugin rm <安装路径或包名>`，会先停止该插件的服务与临时 Tailscale 控制台，再删除：
 
-- 本插件自动下载的 Node、Tailscale、EAC 来源及未完成的下载目录。
-- 设置、模型缓存、统计、渠道账号、EAC 登录、Gemini OAuth 和 Loomy 配置、临时文件。
+- 本插件自动下载的 Node、Tailscale、原渠道包、EAC 来源及未完成的下载目录。
+- 设置、模型缓存、统计、渠道账号、EAC 登录、旧版 Gemini OAuth 和 Loomy 配置文件、临时文件。
 - 本插件在 Magpie 中的统一供应商及旧兼容供应商登录记录。
 - 0.6.0 起登记过的历史 `managed.dataDir`，即使后来改了路径或停用了插件。
 
@@ -137,9 +137,13 @@ Secure/HttpOnly 会话，拒绝模型 API 和本机终端登录入口。已有 T
 userspace networking 和内存状态，退出时注销临时节点。[Funnel](https://tailscale.com/docs/features/tailscale-funnel)、
 [临时节点](https://tailscale.com/docs/features/ephemeral-nodes) 的账户权限和网络限制仍适用。
 
-Funnel 解决管理页面可达性，不会改写厂商的 OAuth 注册规则。某些渠道（如 Gemini）仍使用独立的 localhost 回调端口，
-这类登录仍需额外 SSH 转发该回调端口；本版未逐家使用真实账号验证远程登录。控制台 API 接入页显示的是服务器本机 API 地址，
-不会通过这个临时入口公开模型 API。
+远程控制台会将 Loomy 原生微信扫码页和轮询/绑定接口转发到当前临时 HTTPS 地址，直接使用原渠道包的 App ID。
+Gemini 保留原项目的 `http://localhost:<端口>/oauth-callback`，符合 Google 桌面应用回调规则。
+Google 授权后，若你的电脑无法打开 localhost 页面，复制地址栏中的完整回调地址，回到远程控制台，
+展开 **Gemini 服务器登录回调**，粘贴并回传。原渠道包继续处理 state 校验、令牌交换与账号保存；
+不需要再为这个回调端口建立 SSH 转发。回传限于当前管理会话启动的登录，端口、路径和 state 必须匹配。
+其他渠道的独立回调仍沿用上游流程；本版未逐家使用真实账号验证远程登录。
+控制台 API 接入页显示的是服务器本机 API 地址，不会通过这个临时入口公开模型 API。
 
 如果不使用 Tailscale，可以保留 SSH 方式。在自己电脑上转发管理服务和一次性交接服务两个端口。
 可设置固定端口，避免每次查找交接端口：
@@ -159,38 +163,24 @@ ssh -N -L 18900:127.0.0.1:18900 -L 18901:127.0.0.1:18901 your-user@your-server
 两端对应端口需空闲；服务端 18900 若被占用会选择其他端口，以实际地址为准并调整转发。
 部分账号渠道还依赖浏览器登录或其他回调端口，应按该渠道提示额外转发；Node 自动安装不会替你登录厂商账号。
 
-### Loomy 微信扫码的额外配置
+### 直接使用原仓库渠道包
 
-GitHub 告警中的 WeChat App ID 来自上游 Loomy 的微信二维码登录 URL，并非读取你的本机账号后上传。
-本仓库已经移除这一固定值，未将它拆分或编码隐藏。Loomy 微信扫码登录需要本机显式配置。
-在一体化数据目录保存 `loomy-wechat.json`，重启 Magpie：
+默认 `managed.autoInstallChannels: true`。首次启动自动下载固定提交
+`f8974369c5904858c696b520d8b9b82ad4425f78` 的完整 `business.mjs`、contracts、Qoder WASM 与许可文件，
+来源固定为原仓库的 **raw.githubusercontent.com**。完整文件集合通过固定大小和 SHA-256 校验后才会加载，
+保存在专用数据目录的 `runtime/channels-<提交>/`；原文件不做内容改写，类 Unix 系统目录/文件权限为 0700/0600。
+每次启动复核缓存，缓存完整时可离线加载。首次下载失败会明确报错，请检查网络并重启；不会悄悄换用其他登录配置。
 
-```json
-{ "appId": "YOUR_AUTHORIZED_LOOMY_WECHAT_APP_ID" }
-```
+十三个渠道、Gemini 的默认 OAuth 客户端、Loomy 微信扫码配置及账号处理都直接使用这个原包。
+本插件不再读取旧版新增的 `gemini-oauth.json`、`loomy-wechat.json`，也不再增加 Loomy App ID 环境变量覆盖。
+旧文件不影响升级启动；现有账号按原项目保存，升级不会删除账号。
+Google 原项目已有的环境变量接口仍属于上游行为，插件不额外设置它们。
+厂商账号登录、服务资格和额度仍遵循原项目及厂商规则，不代表免登录或无限免费。
 
-也可在启动 Magpie 前设置 `OFM_LOOMY_WECHAT_APP_ID`。
-该 ID 必须与 Loomy 现有回调服务匹配；随意创建一个微信应用 ID 不保证可用。
-未配置时扫码会给出明确错误，其他渠道不受影响。此配置与真实 Loomy 微信登录尚未验收。
-该文件不要放入源码或提交到 GitHub。旧提交的扫描告警需在 GitHub 安全页面单独审核处理；
-最新代码移除固定值不会抹除 Git 历史。
-
-### Gemini 的额外配置
-
-GitHub 的仓库密钥检查拦截了上游渠道包中的固定 Google OAuth 客户端凭据。
-本仓库已移除这两项内置默认值，使用原渠道已有的环境变量覆盖接口；不绕过仓库规则。
-**Gemini 在本版不是开箱即用**：需要你自己的、被相应 Google 服务接受的 OAuth 客户端，
-客户端配置和真实 Code Assist 访问资格尚未验收。其他渠道不需要这项 Google 配置。
-
-将下列文件保存在一体化数据目录下，命名为 `gemini-oauth.json`，然后重启 Magpie：
-
-```json
-{ "clientId": "YOUR_GOOGLE_OAUTH_CLIENT_ID", "clientSecret": "YOUR_GOOGLE_OAUTH_CLIENT_SECRET" }
-```
-
-这个文件是本机私有配置，不要放入插件源码目录或提交到 GitHub。
-也可在启动 Magpie 前设置 `CMDC_PAK_GOOGLE_CLIENT_ID` 和 `CMDC_PAK_GOOGLE_CLIENT_SECRET`。
-更换 OAuth 客户端后需要重新登录 Gemini；旧客户端签发的 refresh token 通常不能跨客户端使用。
+公开发布包中的渠道副本继续移除内置 OAuth/App ID 默认值；正常运行加载经过校验的原包。
+`managed.autoInstallChannels: false` 是明确关闭原包加载的受限模式，用于离线隔离测试；
+此模式不提供 Gemini 默认客户端及 Loomy 微信扫码能力，正常使用请保留默认值。
+下载的原包也纳入插件卸载清理。上游代码固定在上述提交，后续更新须重新核对版本与哈希。
 
 ### EAC 自动接入
 
