@@ -1,6 +1,6 @@
 import { getManagedRuntime } from './managed-runtime.mjs';
 import { safeID, positive, fallback, chatRequest, forwardChat } from './transport.mjs';
-import { remoteByDefault } from './tailscale-console.mjs';
+import { remoteByDefault } from './cloudflare-console.mjs';
 import fs from 'node:fs';
 
 const PROVIDER = 'our-free-model';
@@ -32,6 +32,7 @@ export function managedModel(row, base) {
 }
 
 export async function createManagedPlugin(input, options = {}) {
+  if (options.consoleAccess === 'tailscale') options = { ...options, consoleAccess: 'cloudflare' };
   const runtime = getManagedRuntime(input, options);
   let cache;
   const authorizeConsole = async access => {
@@ -75,8 +76,8 @@ export async function createManagedPlugin(input, options = {}) {
       // Carry the packaged picture without depending on access to GitHub.
       icon: providerIcon ??= `data:image/webp;base64,${fs.readFileSync(new URL('../assets/icon.webp', import.meta.url)).toString('base64')}`,
       methods: [
-        { type: 'oauth', label: remoteByDefault(options) ? '启用模型 / 临时远程控制台（Tailscale）' : '启用模型 / 打开账号管理控制台', authorize: () => authorizeConsole() },
-        { type: 'oauth', label: remoteByDefault(options) ? '本机控制台 / SSH 转发' : '临时远程控制台（Tailscale）', authorize: () => authorizeConsole(remoteByDefault(options) ? 'local' : 'tailscale') },
+        { type: 'oauth', label: remoteByDefault(options) ? '启用模型 / 临时远程控制台（免登录）' : '启用模型 / 打开账号管理控制台', authorize: () => authorizeConsole() },
+        { type: 'oauth', label: remoteByDefault(options) ? '本机控制台 / SSH 转发' : '临时远程控制台（免登录）', authorize: () => authorizeConsole(remoteByDefault(options) ? 'local' : 'cloudflare') },
       ],
       async loader(getAuth) {
         const auth = await getAuth();

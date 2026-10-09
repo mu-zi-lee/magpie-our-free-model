@@ -61,11 +61,20 @@ test('managed lifecycle validates settings, prevents conflicting instances and d
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: -1 }), /port/);
   assert.throws(() => getManagedRuntime({ directory: dir }, { autoInstallEac: 'yes' }), /autoInstallEac/);
+  assert.throws(() => getManagedRuntime({ directory: dir }, { autoInstallCloudflared: 'yes' }), /autoInstallCloudflared/);
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: 18900, consolePort: 18900 }), /consolePort/);
   const runtime = getManagedRuntime({ directory: dir }, { nodePath: path.join(dir, 'missing-node') });
   assert.equal(getManagedRuntime({ directory: dir }, { nodePath: path.join(dir, 'missing-node') }), runtime);
   assert.throws(() => getManagedRuntime({ directory: dir }, { port: 0 }), /不同服务设置/);
   await assert.rejects(runtime.ensure(), /Node/);
+  const legacy = { dataDir: path.join(dir, 'migration'), consoleAccess: 'tailscale', autoInstallCloudflared: false };
+  const migrated = await createManagedPlugin({ directory: dir }, legacy);
+  t.after(() => migrated.lifecycle.dispose());
+  assert.equal(migrated.auth.methods.length, 2);
+  assert.match(migrated.auth.methods[0].label, /免登录/);
+  assert.doesNotMatch(JSON.stringify(migrated.auth.methods), /Tailscale/);
+  assert.equal(getManagedRuntime({ directory: dir }, legacy),
+    getManagedRuntime({ directory: dir }, { ...legacy, consoleAccess: 'cloudflare' }));
 });
 
 test('real bundled service: console handoff, channels, EAC, requests, key rotation and shutdown', { skip: process.platform === 'win32' }, async t => {
@@ -128,21 +137,20 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   await new Promise(resolve => reservation.close(resolve));
   const input = { directory: dir };
   const tunnelTarget = path.join(dir, 'tunnel-target.txt');
-  const tailscaleScript = path.join(dir, 'tailscale-fixture.mjs');
-  fs.writeFileSync(tailscaleScript, `import fs from 'node:fs';
+  const cloudflareScript = path.join(dir, 'cloudflare-fixture.mjs');
+  fs.writeFileSync(cloudflareScript, `import fs from 'node:fs';
     const args=process.argv.slice(2);
-    if(args[0]==='version') { console.log('1.102.4'); process.exit(0); }
-    if(args[0]==='status') { console.log(JSON.stringify({BackendState:'Running',Self:{DNSName:'managed.fixture.ts.net.'}})); process.exit(0); }
-    if(args[0]==='funnel' && args[1]==='status') { console.log('{}'); process.exit(0); }
-    if(args[0]==='funnel') {
-      fs.writeFileSync(${JSON.stringify(tunnelTarget)}, args.at(-1));
-      console.log('Available on the internet:\\nhttps://managed.fixture.ts.net');
-      setInterval(()=>{},1000); process.on('SIGTERM',()=>process.exit(0));
+    if(args[0]==='--version') { console.log('cloudflared version 2026.10.0'); process.exit(0); }
+    if(args[0]==='tunnel') {
+      fs.writeFileSync(${JSON.stringify(tunnelTarget)}, args[args.indexOf('--url')+1]);
+      console.log('https://managed-fixture.trycloudflare.com');
+      console.log('Registered tunnel connection');
+      setInterval(()=>{},1000);
     } else process.exit(1);
   `);
-  const tailscalePath = path.join(dir, 'tailscale');
-  fs.writeFileSync(tailscalePath, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(tailscaleScript)} "$@"\n`, { mode: 0o700 });
-  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir, consoleAccess: 'local', autoInstallChannels: false, tailscalePath };
+  const cloudflaredPath = path.join(dir, 'cloudflared');
+  fs.writeFileSync(cloudflaredPath, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(cloudflareScript)} "$@"\n`, { mode: 0o700 });
+  const options = { dataDir, nodePath: wrapper, port: 0, consolePort, eacSourceDir, consoleAccess: 'local', autoInstallChannels: false, cloudflaredPath };
   const runtime = getManagedRuntime(input, options);
   t.after(async () => {
     await runtime.close();
@@ -195,13 +203,14 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     assert.notEqual(next.url, login.url);
     assert.equal((await fetch(next.url, { redirect: 'manual' })).status, 303);
   });
-  await t.test('remote auth goes through the real runner and gateway; closing it keeps model service running', async () => {
+  await t.test(`Cloudflare auth goes through the real runner and gateway; closing it keeps model service running`, async () => {
     const remote = await plugin.auth.methods[1].authorize();
-    assert.match(remote.url, /^https:\/\/managed\.fixture\.ts\.net\/open\//);
+    const hostname = 'managed-fixture.trycloudflare.com';
+    assert.equal(new URL(remote.url).hostname, hostname);
     const target = fs.readFileSync(tunnelTarget, 'utf8');
     // Node fetch does not preserve a caller-supplied Host on all supported versions.
     const request = (pathname, options = {}) => new Promise((resolve, reject) => {
-      const req = httpRequest(target + pathname, { ...options, headers: { host: 'managed.fixture.ts.net', ...options.headers } }, res => {
+      const req = httpRequest(target + pathname, { ...options, headers: { host: hostname, ...options.headers } }, res => {
         let body = ''; res.on('data', chunk => { body += chunk; });
         res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
       }); req.on('error', reject); req.end();
@@ -211,7 +220,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     const cookie = opened.headers['set-cookie'][0].split(';')[0];
     const summary = await request('/api/management/summary', { headers: { cookie } });
     assert.equal(summary.status, 200); assert.equal(JSON.parse(summary.body).channels.state, 'ready');
-    const closed = await request('/remote/close', { method: 'POST', headers: { cookie, origin: 'https://managed.fixture.ts.net' } });
+    const closed = await request('/remote/close', { method: 'POST', headers: { cookie, origin: `https://${hostname}` } });
     assert.equal(closed.status, 200);
     await until(async () => { try { await fetch(target); return false; } catch { return true; } });
     assert.equal((await api('/api/management/summary')).status, 200);

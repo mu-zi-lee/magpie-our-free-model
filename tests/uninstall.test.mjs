@@ -30,7 +30,7 @@ test('uninstall removes every owned runtime, account file, temporary file and hi
       'channel-credentials.json', 'settings.json.123.tmp', 'channel-pack/state.json', 'temporary/tailscale-123/socket',
       '.magpie-ofm-owner.json.ofm.123.123456abcdef.tmp',
       'runtime/node-v24.21.0-linux-x64/bin/node', 'runtime/tailscale-1.102.4-amd64/tailscale',
-      'runtime/eac-f8974369c5904858c696b520d8b9b82ad4425f78/src/vault.js', 'runtime/.node-install-AbC123/node.tar.gz', 'runtime/channels-f8974369c5904858c696b520d8b9b82ad4425f78/packages/standalone/channels/business.mjs', 'runtime/.channels-install-AbC123/business.mjs']) await put(dir, file);
+      'runtime/eac-f8974369c5904858c696b520d8b9b82ad4425f78/src/vault.js', 'runtime/.node-install-AbC123/node.tar.gz', 'runtime/channels-f8974369c5904858c696b520d8b9b82ad4425f78/packages/standalone/channels/business.mjs', 'runtime/.channels-install-AbC123/business.mjs', 'runtime/cloudflared-2026.10.0-linux-x64/cloudflared', 'runtime/.cloudflared-install-AbC123/release.tgz', 'temporary/cloudflare-123/config.yaml']) await put(dir, file);
   }
   await put(f.directory, 'plugin-auth.json', JSON.stringify({
     'our-free-model': { key: 'managed' }, 'our-free-model#abcdef': { key: 'managed' },
@@ -55,12 +55,14 @@ test('custom directory preserves unrelated files, pre-existing binaries and orig
   await put(f.dataDir, 'runtime/my-system-node/bin/node', 'keep-node');
   await put(f.base, 'original-eac/src/vault.js', 'keep-source');
   await put(f.base, 'system-tailscale', 'keep-cli');
+  await put(f.base, 'system-cloudflared', 'keep-cloudflare-cli');
   await put(f.dataDir, 'catalog.json');
   await cleanupInstallation({ directory: f.directory }, { dataDir: f.dataDir, nodePath: path.join(f.base, 'runtime/my-system-node/bin/node'), eacSourceDir: path.join(f.base, 'original-eac') });
   assert.equal(await fs.readFile(path.join(f.dataDir, 'my-notes.txt'), 'utf8'), 'keep');
   assert.equal(await fs.readFile(path.join(f.dataDir, 'runtime/my-system-node/bin/node'), 'utf8'), 'keep-node');
   assert.equal(await exists(path.join(f.base, 'original-eac/src/vault.js')), true);
   assert.equal(await exists(path.join(f.base, 'system-tailscale')), true);
+  assert.equal(await fs.readFile(path.join(f.base, 'system-cloudflared'), 'utf8'), 'keep-cloudflare-cli');
   assert.equal(await exists(path.join(f.dataDir, 'catalog.json')), false);
 });
 

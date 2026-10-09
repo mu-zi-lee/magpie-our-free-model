@@ -25,7 +25,7 @@ test('unchanged original bundle: native Gemini default login/credential save and
       logger: { info() {}, warn() {}, error() {} } });
     gateway = await createRemoteConsole(service);
     assert.equal(service.channels.providers.length, 13);
-    const origin = 'https://native.fixture.ts.net'; gateway.setOrigin(origin);
+    const origin = 'https://native-fixture.trycloudflare.com'; gateway.setOrigin(origin);
     let cookie;
     const request = (pathname, value) => new Promise((resolve, reject) => {
       const req = http.request(new URL(pathname, gateway.target), { method: value ? 'POST' : 'GET', headers: {

@@ -1,4 +1,42 @@
-# Validation — 0.7.0
+# Validation — 0.8.0
+
+## Accountless Cloudflare console and Tailscale removal — 2026-10-09
+
+- Removed Tailscale client/daemon installation, authorization and runtime integration.
+  Saved `consoleAccess: "tailscale"` migrates to Cloudflare. Only legacy cache
+  ownership rules remain so uninstall can remove old plugin downloads.
+- Official cloudflared **2026.10.0** asset sizes and SHA-256 pins match GitHub
+  release metadata for Linux/macOS x64/arm64 and Windows x64. Both macOS archives
+  were verified before calculating executable hashes. The official macOS arm64
+  binary was downloaded, verified, installed privately and executed successfully.
+  No binaries ship in the package; the original Apache-2.0 LICENSE is preserved.
+- Live accountless Quick Tunnels were exercised on macOS arm64 using only a
+  synthetic management service and fixture credentials. The tunnel connected;
+  initial public requests returned DNS `ENOTFOUND`/NXDOMAIN. After approximately
+  **80 seconds**, public HTTPS reached the gateway. A second tunnel then passed
+  one-use ticket exchange (303), authenticated HTML (200), replay refusal (401)
+  and explicit close (200). All tunnel processes and temporary configurations
+  were closed afterward. Real Google/WeChat/EAC sign-in was not exercised.
+- `npm test`: **214 passed, 0 failed, 2 skipped**. The two optional unchanged
+  original-channel tests passed separately (**2/2**) using the verified original
+  bundle, a real Worker/gateway and mocked vendor replies. Node/Bun contracts pass.
+- Downloader fixtures cover concurrent install, offline reuse, repair, checksum
+  rejection before execution, archive/executable verification and official redirect
+  restrictions. Tunnel fixtures cover shared opens, isolated config/environment,
+  failures, timeouts, 30-minute expiry, close races and owner SIGKILL cleanup.
+- Gateway and managed-runner fixtures verify authentication, origin fencing,
+  management-only routing, native callback relays and continuing model service
+  after remote access closes. Uninstall covers cloudflared caches, incomplete
+  downloads, temporary config, legacy Tailscale data and existing external tools.
+- Both real Magpie/Bun CLI smoke scripts pass. Fixture runs now intercept browser
+  launch commands in their own child PATH and omit transient login URLs from
+  successful output. The managed smoke asserts that the browser invocation was
+  intercepted. The live user's browser and system PATH are not modified.
+- Linux/Windows cloudflared execution was not tested on those platforms. The
+  successful public fixture validates this environment at test time; Quick Tunnel
+  DNS delay and external service/network availability still affect startup.
+
+## Previous 0.7.0 validation record
 
 ## Original channel bundle and remote callbacks — 2026-10-09
 

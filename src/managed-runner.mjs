@@ -7,7 +7,7 @@ import { effortsFor } from '../vendor/ofm/src/effort.js';
 import { createConsoleHandoff } from './managed-console.mjs';
 import { loadEacSource } from './eac-source.mjs';
 import { channelBusinessUrl } from './channel-source.mjs';
-import { createTailscaleConsole, remoteByDefault } from './tailscale-console.mjs';
+import { createCloudflareConsole, remoteByDefault } from './cloudflare-console.mjs';
 
 let service;
 let stopping;
@@ -15,6 +15,7 @@ let stopped = false;
 let parentWatch;
 let consoleHandoff;
 let remoteConsole;
+let consoleRequests = Promise.resolve();
 let runnerSettings;
 const lines = createInterface({ input: process.stdin });
 const stop = () => {
@@ -74,13 +75,20 @@ lines.on('line', async line => {
   try {
     let value;
     if (command.type === 'console') {
-      const remote = command.access === 'tailscale' || command.access !== 'local' && remoteByDefault(runnerSettings);
-      if (remote) {
-        const previous = remoteConsole;
-        if (previous?.closed) { await previous.close(); if (remoteConsole === previous) remoteConsole = undefined; }
-        remoteConsole ??= createTailscaleConsole(service, runnerSettings, runnerSettings.dataDir);
-        value = await remoteConsole.open();
-      } else value = consoleHandoff.ticket();
+      value = await (consoleRequests = consoleRequests.catch(() => {}).then(async () => {
+        if (stopping) throw new Error('内置服务正在关闭');
+        const access = command.access ?? runnerSettings.consoleAccess;
+        if (!['auto', 'local', 'cloudflare'].includes(access)) throw new Error('无效控制台访问方式');
+        const remote = remoteByDefault({ ...runnerSettings, consoleAccess: access });
+        if (remote) {
+          const previous = remoteConsole;
+          if (previous?.closed) { await previous.close(); remoteConsole = undefined; }
+          if (stopping) throw new Error('内置服务正在关闭');
+          remoteConsole ??= createCloudflareConsole(service, runnerSettings, runnerSettings.dataDir);
+          return remoteConsole.open();
+        }
+        return consoleHandoff.ticket();
+      }));
     }
     else if (command.type === 'admit') {
       const model = command.model;

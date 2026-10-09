@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
+import { quietBrowserEnv } from './smoke-browser.mjs';
 
 if (process.platform === 'win32') throw new Error('This POSIX test wrapper is verified on Linux only');
 const binary = process.env.MAGPIE_BIN;
@@ -31,10 +32,10 @@ const fixture = `http://127.0.0.1:${upstream.address().port}`;
 const quote = value => `'${value.replaceAll("'", "'\\''")}'`;
 const nodePath = path.join(scratch, 'node-fixture');
 fs.writeFileSync(nodePath, `#!/bin/sh\nexec ${quote(process.execPath)} --import ${quote(path.join(project, 'tests/managed-fixture.mjs'))} "$@"\n`, { mode: 0o700 });
-const env = { ...process.env, XDG_CONFIG_HOME: path.join(scratch, 'config'),
+const env = quietBrowserEnv(scratch, { ...process.env, XDG_CONFIG_HOME: path.join(scratch, 'config'),
   XDG_CACHE_HOME: process.env.MAGPIE_TEST_CACHE || path.join(scratch, 'cache'),
   OFM_TEST_UPSTREAM: fixture, OUR_FREE_MODEL_BASE: fixture, OUR_FREE_MODEL_KILO_BASE: fixture,
-  MAGPIE_PLUGIN_MARKET: 'off', MAGPIE_ADDR: '127.0.0.1:3498' };
+  MAGPIE_PLUGIN_MARKET: 'off', MAGPIE_ADDR: '127.0.0.1:3498' });
 async function run(args, input = '') {
   const child = spawn(binary, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
   let out = '', err = '';
@@ -51,7 +52,10 @@ try {
   await run(['plugin', 'options', project, JSON.stringify({
     managed: { dataDir, nodePath, refresh: false, consoleAccess: 'local', autoInstallChannels: false, autoInstallEac: false } })]);
   const login = await run(['plugin', 'login', 'our-free-model'], '1\n\n');
-  console.log(login.out.trim());
+  assert.match(login.out, /signed in to Our Free Model/);
+  for (let i = 0; i < 40 && !fs.existsSync(env.OFM_SMOKE_BROWSER_LOG); i++) await new Promise(resolve => setTimeout(resolve, 50));
+  assert.match(fs.readFileSync(env.OFM_SMOKE_BROWSER_LOG, 'utf8'), /intercepted/);
+  console.log('Fixture login passed; automatic browser launch intercepted.');
   const { out } = await run(['plugin', '--json']);
   const listing = JSON.parse(out);
   assert.equal(listing.providers.length, 1);

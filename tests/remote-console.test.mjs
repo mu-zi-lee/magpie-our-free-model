@@ -8,7 +8,7 @@ import { once } from 'node:events';
 import { createRemoteConsole } from '../src/remote-console.mjs';
 import { structuralRejection } from '../vendor/ofm/src/trust.js';
 
-test('public gateway authenticates all routes, translates only validated origins and closes explicitly', async t => {
+test(`Cloudflare gateway authenticates all routes, translates only validated origins and closes explicitly`, async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-gateway-'));
   const keyFile = path.join(dir, 'settings.json');
   fs.writeFileSync(keyFile, JSON.stringify({ forwardKey: 'local-private-key' }));
@@ -30,8 +30,12 @@ test('public gateway authenticates all routes, translates only validated origins
   const gateway = await createRemoteConsole({ url: `http://127.0.0.1:${upstream.address().port}`, keyFile },
     { onClose: () => { closed++; }, now: () => clock, sessionMs: 30000 });
   t.after(async () => { await gateway.close(); upstream.closeAllConnections(); await new Promise(resolve => upstream.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); });
-  assert.throws(() => gateway.setOrigin('https://attacker.example'), /无效/);
-  origin = 'https://fixture.tailnet.ts.net:8443'; gateway.setOrigin(origin);
+  for (const address of ['https://attacker.example', 'https://old.tailnet.ts.net',
+    'http://fixture.trycloudflare.com', 'https://nested.fixture.trycloudflare.com',
+    'https://fixture.trycloudflare.com:8443', 'https://fixture.trycloudflare.com/path']) {
+    assert.throws(() => gateway.setOrigin(address), /无效/);
+  }
+  origin = 'https://fixture-console.trycloudflare.com'; gateway.setOrigin(origin);
   const request = (pathname, options = {}) => new Promise((resolve, reject) => {
     const req = http.request(new URL(pathname, gateway.target), { method: options.method ?? 'GET',
       headers: { host: new URL(origin).host, ...(options.headers ?? {}) } }, res => {

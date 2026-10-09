@@ -5,7 +5,7 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.7.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
+版本 **0.8.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
 插件图标使用 `assets/icon.png` 的无损 WebP 副本（像素和尺寸相同，满足 Magpie 的 1 MB 限制），随包加载，无需联网获取图标。
 原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
 随包保存在 `vendor/ofm/`。57 个保留文件中 50 个保持原始字节；7 个有明确适配改动：
@@ -18,7 +18,7 @@
 1. 从本仓库 Code → Download ZIP 解压，或执行下方 `git clone`。把项目目录放到固定位置。
 2. 在 Magpie 插件页面添加该目录，启用插件；不需要 `npm install` 或编译。
 3. 在 **Our Free Model** 供应商点击 **启用模型 / 打开账号管理控制台**。
-   插件自动启动随包携带的服务；桌面打开本机控制台，SSH/无桌面 Linux 默认提供 Tailscale 临时 HTTPS 控制台；无需填写本地 API Key。
+   插件自动启动随包携带的服务；桌面打开本机控制台，SSH/无桌面 Linux 默认提供免登录 Cloudflare 临时 HTTPS 控制台；无需填写本地 API Key。
 4. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 来源会自动安装，在控制台完成原项目的 GitHub 授权及 Star 校验后使用；
    账号渠道在控制台分别登录，完成后回 Magpie 刷新模型，并为 Agent 选用 `our-free-model` 下的模型。
 
@@ -81,16 +81,16 @@ ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录�
 **需要支持 `package.json` 中 `magpie.uninstall` 回调的 Magpie。** 配套实现见 [Magpie PR #1](https://github.com/mu-zi-lee/magpie/pull/1)，对应分支 `codex/plugin-uninstall-cleanup`；
 原有 Magpie 仅移除插件条目并跳过包脚本，单独更新插件不能让旧宿主自动清理。
 
-使用支持回调的 Magpie，在插件页面点击卸载，或运行 `magpie plugin rm <安装路径或包名>`，会先停止该插件的服务与临时 Tailscale 控制台，再删除：
+使用支持回调的 Magpie，在插件页面点击卸载，或运行 `magpie plugin rm <安装路径或包名>`，会先停止该插件的服务与临时 Cloudflare 控制台，再删除：
 
-- 本插件自动下载的 Node、Tailscale、原渠道包、EAC 来源及未完成的下载目录。
+- 本插件自动下载的 Node、cloudflared、原渠道包、EAC 来源及未完成的下载目录；旧版本下载的 Tailscale 也会清理。
 - 设置、模型缓存、统计、渠道账号、EAC 登录、旧版 Gemini OAuth 和 Loomy 配置文件、临时文件。
 - 本插件在 Magpie 中的统一供应商及旧兼容供应商登录记录。
 - 0.6.0 起登记过的历史 `managed.dataDir`，即使后来改了路径或停用了插件。
 
 首次使用会在 Magpie 配置目录保存清理登记，并在专用数据目录写入归属标记；卸载成功后这些登记也会删除。
 升级前的旧版本没有历史目录登记，卸载时只能识别当前配置指向的旧 OFM 数据目录。
-系统已有 Node/Tailscale、自行指定的外部 EAC 源码、其他供应商账号，以及自定义目录中的无关文件会保留。
+系统已有 Node/cloudflared/Tailscale、自行指定的外部 EAC 源码、其他供应商账号，以及自定义目录中的无关文件会保留。
 路径安装的源码目录由用户管理，Magpie 保留该目录；包管理器安装的插件包由 Magpie 移除。
 共享的 Magpie Bun 和缓存由 Magpie 管理，不属于本插件的下载。
 
@@ -101,19 +101,19 @@ ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录�
 ### 服务器部署与浏览器控制台
 
 默认 `managed.consoleAccess: "auto"`：检测到 SSH 环境，或没有 DISPLAY/WAYLAND_DISPLAY 的 Linux 时，
-供应商登录入口使用 **临时远程控制台（Tailscale）**。自动判断只是环境启发式；
-判断不符合实际时可在登录方式中选择本机/SSH 入口，或显式设置 `"local"`、`"tailscale"`。
+供应商登录入口使用 **临时远程控制台（免登录）**。自动判断只是环境启发式；
+判断不符合实际时可在登录方式中选择本机/远程入口，或显式设置 `"local"`、`"cloudflare"`。
 
-1. 在持续运行的 Magpie 界面点击 **临时远程控制台（Tailscale）**。
-2. 优先复用已连接的 Tailscale。Linux 缺少可用客户端/守护进程时，自动从官方
-   [下载源](https://dl.tailscale.com/stable/) 下载固定 **1.102.4** 的静态二进制，按代码中固定 SHA-256 校验，缓存到插件数据目录 `runtime/`。
-   自动下载支持 **Linux x64/arm64**，需要 `tar` 和访问官方下载源；不需要 root，不修改系统 PATH/服务。
-3. 未加入网络时，会给出 Tailscale 官方授权链接。在自己电脑的浏览器登录你的 Tailscale 账号并授权，
-   然后回 Magpie 再次点击同一入口。可能还需要按下一次链接启用 HTTPS/Funnel。
-   **账号登录和管理员授权无法由插件代替**；浏览器无需安装 Tailscale。
-4. 准备好后得到 `https://设备名.网络名.ts.net[:端口]/open/…`，直接在浏览器打开。
-   链接十分钟有效、只能使用一次；首次公网 DNS 生效可能需要几分钟。
-5. 完成账号管理后点击页面顶部 **结束远程访问**。页面退出登录、通道启动后满 **30 分钟**、
+1. 在持续运行的 Magpie 界面点击 **临时远程控制台（免登录）**。
+2. 优先使用已有 `cloudflared`。缺少可用客户端时，自动从
+   [Cloudflare 官方发行页](https://github.com/cloudflare/cloudflared/releases/tag/2026.10.0)
+   下载固定 **2026.10.0**，校验固定大小和 SHA-256，再缓存到插件数据目录 `runtime/`。
+   自动下载支持 **Linux/macOS x64、arm64 和 Windows x64**，macOS 解压需要 `tar`。
+   首次下载约 20–55 MB；不需要 root，不修改系统 PATH，不安装系统服务。
+3. 无需 Cloudflare 账号、登录、域名或 Tailscale。连接后会给出随机的
+   `https://随机名称.trycloudflare.com/open/…`，在自己电脑浏览器中打开即可。
+   链接十分钟有效、只能使用一次；临时域名可能需要一两分钟才能访问，实测首次约 80 秒。
+4. 完成账号管理后点击页面顶部 **结束远程访问**。退出登录、通道启动后满 **30 分钟**、
    或宿主退出都会关闭本次入口；重新点击可开启新通道。模型服务继续在服务器本机运行。
 
 可选配置：
@@ -122,20 +122,22 @@ ZIP 安装请用新版文件替换旧目录，保留自己的账号数据目录�
 {
   "managed": {
     "consoleAccess": "auto",
-    "autoInstallTailscale": true
+    "autoInstallCloudflared": true
   }
 }
 ```
 
-可用 `tailscalePath` 指定已有 CLI，Linux 可用 `tailscaledPath` 指定守护进程。
-macOS/Windows 的远程入口需要先安装并连接官方 Tailscale 客户端；本版不自动运行这些系统的提权安装器。
-`autoInstallTailscale: false` 禁止自动下载，缺少客户端时直接显示原因。
+可用 `cloudflaredPath` 指定已有官方客户端（2024 或更新版本）。
+`autoInstallCloudflared: false` 禁止自动下载，缺少客户端时直接显示原因。
+旧配置 `consoleAccess: "tailscale"` 自动迁移为 Cloudflare，不再运行或下载 Tailscale；
+旧 `tailscalePath`、`tailscaledPath` 和 `autoInstallTailscale` 配置不再生效。
 
-管理服务仍只监听回环地址。Funnel 转发到插件独立的管理网关；网关校验 HTTPS Host/Origin、一次性链接和
-Secure/HttpOnly 会话，拒绝模型 API 和本机终端登录入口。已有 Tailscale 节点使用空闲的 443/8443/10000 端口，
-以前台会话运行，只撤销自己的会话，**不执行全局 reset/logout**。没有已连接节点的 Linux 使用独立 socket、
-userspace networking 和内存状态，退出时注销临时节点。[Funnel](https://tailscale.com/docs/features/tailscale-funnel)、
-[临时节点](https://tailscale.com/docs/features/ephemeral-nodes) 的账户权限和网络限制仍适用。
+管理服务仍只监听回环地址。Quick Tunnel 转发到插件独立的管理网关；网关校验 HTTPS Host/Origin、
+一次性链接和 Secure/HttpOnly 会话，拒绝模型 API 和本机终端登录入口。
+客户端使用独立临时配置，忽略已有具名隧道的 token/配置环境变量；关闭时结束本次进程并删除临时配置。
+服务器需要能访问 GitHub 发行文件和 Cloudflare 隧道服务。
+[Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) 用于临时访问，
+不保证可用性，不支持 SSE；本插件只用它管理账号，模型流式请求仍走本机服务。
 
 远程控制台会将 Loomy 原生微信扫码页和轮询/绑定接口转发到当前临时 HTTPS 地址，直接使用原渠道包的 App ID。
 Gemini 保留原项目的 `http://localhost:<端口>/oauth-callback`，符合 Google 桌面应用回调规则。
@@ -145,7 +147,7 @@ Google 授权后，若你的电脑无法打开 localhost 页面，复制地址�
 其他渠道的独立回调仍沿用上游流程；本版未逐家使用真实账号验证远程登录。
 控制台 API 接入页显示的是服务器本机 API 地址，不会通过这个临时入口公开模型 API。
 
-如果不使用 Tailscale，可以保留 SSH 方式。在自己电脑上转发管理服务和一次性交接服务两个端口。
+如果不使用临时公网通道，可以保留 SSH 方式。在自己电脑上转发管理服务和一次性交接服务两个端口。
 可设置固定端口，避免每次查找交接端口：
 
 ```json
@@ -195,7 +197,7 @@ Google 原项目已有的环境变量接口仍属于上游行为，插件不额�
 授权成功后原服务自动刷新 EAC 清单；回 Magpie 刷新模型后即可选用。
 **安装来源不等于已授权**；授权、Star 校验、请求签名、资源池与实际模型可用性均由原项目网关决定。
 本插件沿用原项目独立服务的 `openSeal` 入口，不伪装 DSH 宿主，也不绕过服务端检查。
-Tailscale 仅提供控制台入口，不影响原网关的浏览器授权流程。
+临时远程通道仅提供控制台入口，不影响原网关的浏览器授权流程。
 
 服务器需能访问 raw.githubusercontent.com 及原 EAC 网关。下载有总计 20 秒的超时和大小限制，
 来源安装失败会在 EAC 页面显示原因，匿名/Kilo 与账号渠道继续运行。
@@ -227,7 +229,7 @@ Tailscale 仅提供控制台入口，不影响原网关的浏览器授权流程�
 
 ```json
 {
-  "managed": { "autoInstallNode": true, "consoleAccess": "auto", "autoInstallTailscale": true, "dataDir": "/absolute/path/to/ofm-data", "port": 18900, "consolePort": 18901 }
+  "managed": { "autoInstallNode": true, "consoleAccess": "auto", "autoInstallCloudflared": true, "dataDir": "/absolute/path/to/ofm-data", "port": 18900, "consolePort": 18901 }
 }
 ```
 

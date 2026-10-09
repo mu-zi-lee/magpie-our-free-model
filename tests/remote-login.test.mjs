@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { Readable } from 'node:stream';
 import { createRemoteLogin } from '../src/remote-login.mjs';
 
-const origin = 'https://fixture.tailnet.ts.net';
+const origin = 'https://fixture-console.trycloudflare.com';
 async function handle(login, pathname, { session = 'session', method = 'GET', value, headers = {} } = {}) {
   const req = Readable.from(value === undefined ? [] : [Buffer.from(JSON.stringify(value))]);
   req.method = method; req.headers = headers;

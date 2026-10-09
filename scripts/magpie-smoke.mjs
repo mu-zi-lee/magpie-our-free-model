@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { spawn } from 'node:child_process';
+import { quietBrowserEnv } from './smoke-browser.mjs';
 
 const binary = process.env.MAGPIE_BIN;
 if (!binary) throw new Error('Set MAGPIE_BIN to your Magpie CLI absolute path');
@@ -59,9 +60,9 @@ const server = createServer(async (req, res) => {
 server.listen(0, '127.0.0.1');
 await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
-const env = { ...process.env, XDG_CONFIG_HOME: path.join(root, 'config'),
+const env = quietBrowserEnv(root, { ...process.env, XDG_CONFIG_HOME: path.join(root, 'config'),
   XDG_CACHE_HOME: process.env.MAGPIE_TEST_CACHE || path.join(root, 'cache'),
-  MAGPIE_PLUGIN_MARKET: 'off', MAGPIE_ADDR: '127.0.0.1:3499' };
+  MAGPIE_PLUGIN_MARKET: 'off', MAGPIE_ADDR: '127.0.0.1:3499' });
 async function run(args, input = '') {
   const child = spawn(binary, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
   let out = ''; let err = '';
@@ -84,10 +85,10 @@ try {
   })]);
   for (const id of ['our-free-zen', 'our-free-kilo']) {
     const login = await run(['plugin', 'login', id], 'public\n');
-    console.log(login.out.trim());
+    assert.match(login.out, /signed in/);
   }
   const local = await run(['plugin', 'login', 'our-free-local'], `${origin}/local/v1\nfixture-local-key\n`);
-  console.log(local.out.trim());
+  assert.match(local.out, /signed in/);
   const listing = await run(['plugin', '--json']);
   const data = JSON.parse(listing.out);
   assert.equal(data.providers.length, 3);

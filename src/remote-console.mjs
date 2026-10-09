@@ -8,7 +8,7 @@ const HEADERS = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer',
   'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; frame-ancestors 'none'" };
 const ticketMs = 10 * 60_000;
 
-// The Funnel target is this authenticated gateway, never the model/API listener.
+// The tunnel target is this authenticated gateway, never the model/API listener.
 // External origins are checked before translating requests to the loopback fence.
 export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, onClose = () => {}, now = Date.now } = {}) {
   let origin;
@@ -152,7 +152,8 @@ export async function createRemoteConsole(service, { sessionMs = 30 * 60_000, on
     target: `http://127.0.0.1:${server.address().port}`,
     setOrigin(value) {
       const url = new URL(value);
-      if (url.protocol !== 'https:' || !url.hostname.endsWith('.ts.net') || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('无效 Tailscale HTTPS 地址');
+      const allowed = /^[a-z0-9]+(?:-[a-z0-9]+)*\.trycloudflare\.com$/.test(url.hostname) && !url.port;
+      if (url.protocol !== 'https:' || !allowed || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('无效临时 HTTPS 地址');
       origin = url.origin;
     },
     ticket() {

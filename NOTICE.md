@@ -59,7 +59,10 @@ by the original OFM maintainer. No npm publication is implied by its name.
 
 ## 临时远程管理入口
 
-插件可从 https://dl.tailscale.com/stable/ 下载官方 Tailscale 1.102.4 Linux 静态发行包，
-校验固定 SHA-256 后缓存到用户数据目录；这些二进制不随本仓库分发。
-Tailscale 及其第三方组件许可见 https://tailscale.com/licenses 。
+插件可从 https://github.com/cloudflare/cloudflared/releases/tag/2026.10.0 下载官方
+cloudflared 2026.10.0 发行文件，校验固定大小和 SHA-256 后缓存到用户数据目录；
+macOS 解压后的可执行文件另外校验固定 SHA-256。二进制不随本仓库分发。
+cloudflared 原始 Apache-2.0 许可完整保留在 vendor/cloudflared/LICENSE，并随缓存客户端保存。
+其源代码和第三方依赖信息见 https://github.com/cloudflare/cloudflared/tree/2026.10.0 。
 临时网关、下载器和进程管理代码位于本仓库 `src/`，未修改固定的上游管理服务。
+Tailscale 运行集成和下载器已移除；卸载清理仅保留旧缓存的识别规则。

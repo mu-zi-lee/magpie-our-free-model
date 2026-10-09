@@ -33,10 +33,12 @@ export function getManagedRuntime(input = {}, options = {}) {
   if (options.autoInstallEac !== undefined && typeof options.autoInstallEac !== 'boolean') throw new Error('managed.autoInstallEac 必须为布尔值');
   const consolePort = options.consolePort;
   if (consolePort !== undefined && (!Number.isInteger(consolePort) || consolePort < 0 || consolePort > 65535 || consolePort !== 0 && consolePort === port)) throw new Error('managed.consolePort 必须为独立的 0 到 65535 整数端口');
-  const remote = { consoleAccess: options.consoleAccess ?? 'auto', autoInstallTailscale: options.autoInstallTailscale !== false,
-    tailscalePath: options.tailscalePath, tailscaledPath: options.tailscaledPath };
-  if (!['auto', 'local', 'tailscale'].includes(remote.consoleAccess)) throw new Error('managed.consoleAccess 必须为 auto、local 或 tailscale');
-  for (const key of ['tailscalePath', 'tailscaledPath']) if (remote[key] !== undefined && (typeof remote[key] !== 'string' || !remote[key].trim())) throw new Error(`managed.${key} 必须为非空路径`);
+  // Migrate the old saved mode; no Tailscale code or login is retained.
+  const consoleAccess = options.consoleAccess === 'tailscale' ? 'cloudflare' : options.consoleAccess ?? 'auto';
+  const remote = { consoleAccess, cloudflaredPath: options.cloudflaredPath, autoInstallCloudflared: options.autoInstallCloudflared !== false };
+  if (!['auto', 'local', 'cloudflare'].includes(remote.consoleAccess)) throw new Error('managed.consoleAccess 必须为 auto、local 或 cloudflare');
+  if (options.autoInstallCloudflared !== undefined && typeof options.autoInstallCloudflared !== 'boolean') throw new Error('managed.autoInstallCloudflared 必须为布尔值');
+  if (remote.cloudflaredPath !== undefined && (typeof remote.cloudflaredPath !== 'string' || !remote.cloudflaredPath.trim())) throw new Error('managed.cloudflaredPath 必须为非空路径');
   const identity = JSON.stringify([dataDir, nodePath, port, options.refresh !== false, eacSourceDir, autoInstallEac, autoInstallChannels, options.autoInstallNode !== false, consolePort, remote]);
   if (instances.has(dataDir)) {
     const entry = instances.get(dataDir);
