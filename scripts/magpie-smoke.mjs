@@ -77,6 +77,7 @@ try {
   console.log((await run(['--version'])).out.trim());
   await run(['plugin', 'add', project]);
   await run(['plugin', 'options', project, JSON.stringify({
+    managed: false,
     zen: { baseURL: `${origin}/zen/v1`, catalogURL: `${origin}/catalog`, docsURL: `${origin}/docs` },
     kilo: { baseURL: `${origin}/kilo/v1` }, local: { baseURL: `${origin}/local/v1` },
   })]);

@@ -1,6 +1,12 @@
 import zen from './vendor/zen-free/provider.mjs';
 import { createKiloPlugin } from './src/kilo.mjs';
 import { createLocalPlugin } from './src/local.mjs';
+import { createManagedPlugin } from './src/managed.mjs';
+
+export async function OurFreeModelPlugin(input, options = {}) {
+  if (options.managed === false) return {};
+  return createManagedPlugin(input, options.managed ?? {});
+}
 
 // Magpie invokes every exported function as a separate provider plugin.
 export async function ZenFreePlugin(input, options = {}) {

@@ -57,9 +57,9 @@ function request(loader, base, body = {}, signal) {
     body: JSON.stringify({ model: 'vendor/free', messages: [{ role: 'user', content: 'hello' }], stream: true, ...body }) });
 }
 
-test('entry exports exactly three provider functions and disabling each makes no network calls', async () => {
-  assert.deepEqual(Object.keys(entry).sort(), ['KiloFreePlugin', 'LocalGatewayPlugin', 'ZenFreePlugin']);
-  for (const [name, option] of [['ZenFreePlugin', 'zen'], ['KiloFreePlugin', 'kilo'], ['LocalGatewayPlugin', 'local']]) {
+test('entry exports exactly four provider functions and disabling each makes no network calls', async () => {
+  assert.deepEqual(Object.keys(entry).sort(), ['KiloFreePlugin', 'LocalGatewayPlugin', 'OurFreeModelPlugin', 'ZenFreePlugin']);
+  for (const [name, option] of [['ZenFreePlugin', 'zen'], ['KiloFreePlugin', 'kilo'], ['LocalGatewayPlugin', 'local'], ['OurFreeModelPlugin', 'managed']]) {
     assert.deepEqual(await entry[name]({}, { [option]: false }), {});
   }
 });

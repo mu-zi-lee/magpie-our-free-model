@@ -1,0 +1,315 @@
+{
+  "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
+  "commit": "f8974369c5904858c696b520d8b9b82ad4425f78",
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 1068,
+      "sha256": "4d5f97c83545b2159926df06d3210a266d2b7f900e27f7b3e8e576caf753e828"
+    },
+    {
+      "path": "package.json",
+      "bytes": 2941,
+      "sha256": "648c8a86ebb98c26fecca11aafef15c7e5d2b208d615f8aebf86291ca6fa06d2"
+    },
+    {
+      "path": "packages/standalone/README.md",
+      "bytes": 10762,
+      "sha256": "c2f9e05834830711e0e8c022408b9d05a277379de41f52e798ec9e695df12664"
+    },
+    {
+      "path": "packages/standalone/channels/business.mjs",
+      "bytes": 2872661,
+      "sha256": "68c36b1eb48bb5f24ad0fdfb90fc71172b6babeae65aac2bbc5eae935442732d"
+    },
+    {
+      "path": "packages/standalone/channels/contracts.mjs",
+      "bytes": 1598,
+      "sha256": "999c203ac49b2d77a4dcff750476f3977615ef208ffc3d4d073caea39c72dd33"
+    },
+    {
+      "path": "packages/standalone/channels/credentials.mjs",
+      "bytes": 1703,
+      "sha256": "425cf025cd54b8e16512d8f4c8f33185c2dda8cbb695e195adea14ee347aca36"
+    },
+    {
+      "path": "packages/standalone/channels/images.mjs",
+      "bytes": 2550,
+      "sha256": "109b40791c9193c07b3db6e8dbd12daae454b6ffa5d6ba8e1f109a9db9128788"
+    },
+    {
+      "path": "packages/standalone/channels/runtime.mjs",
+      "bytes": 6232,
+      "sha256": "58b21b7b21780c3450d4181d78f4dede141e45d236f4efce6a772a11f9bd71fd"
+    },
+    {
+      "path": "packages/standalone/channels/worker.mjs",
+      "bytes": 6810,
+      "sha256": "75601bec5d900b6d042458cead016308da05245df711d0c1f6c2d94b8b39a966"
+    },
+    {
+      "path": "packages/standalone/cli.mjs",
+      "bytes": 2210,
+      "sha256": "3d385d10863c19707b72df72d59976af47479c5eb97e92e97d7dd265227ab9e4"
+    },
+    {
+      "path": "packages/standalone/eac.mjs",
+      "bytes": 5728,
+      "sha256": "48ae3cf034b5601529882aa93efa42023bfe2125991a4dfef55a55b0059a45a2"
+    },
+    {
+      "path": "packages/standalone/login-terminal.mjs",
+      "bytes": 3544,
+      "sha256": "04f8e2ec0c39f8a03932600c9d218ece8d09ebee0335cbc3ead883c09099da0a"
+    },
+    {
+      "path": "packages/standalone/management.mjs",
+      "bytes": 15804,
+      "sha256": "81889f0c1d4c7a1fcf3120e9998bae3cafe4270ed6fca8d00e5e697b5e61e510"
+    },
+    {
+      "path": "packages/standalone/package.json",
+      "bytes": 917,
+      "sha256": "dc75891b74091aabcb3be13cee6f9e63244af545f5355d7382d8f5a87e308eae"
+    },
+    {
+      "path": "packages/standalone/service.mjs",
+      "bytes": 7222,
+      "sha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3"
+    },
+    {
+      "path": "packages/standalone/web/_ofm-provider-list-D9WP3xjp.js",
+      "bytes": 2091,
+      "sha256": "f2bd02817e6c8cc527bf75f28daddeb7d54bf8f9330eca3958910e614e743fb5"
+    },
+    {
+      "path": "packages/standalone/web/app.css",
+      "bytes": 74795,
+      "sha256": "2517dc3b89c9832870f92557e162d52ffbfefbe303df5f5b60cbd3341bc41600"
+    },
+    {
+      "path": "packages/standalone/web/app.js",
+      "bytes": 258283,
+      "sha256": "232867c5b3d7f832264de18b19d3b457a73be912850d3644e3363bf2f622f4ae"
+    },
+    {
+      "path": "packages/standalone/web/assets.json",
+      "bytes": 206,
+      "sha256": "755816d6dbe4d3bece5c1bc304513061c127d7ddf1a4883d5a8904e68e0d76d7"
+    },
+    {
+      "path": "packages/standalone/web/channels-jv6LXryG.js",
+      "bytes": 236170,
+      "sha256": "27d8ecdc5bc0cf7035b8f25602ba389cf9a5813d01595e15ddf199628b724cea"
+    },
+    {
+      "path": "packages/standalone/web/index.html",
+      "bytes": 448,
+      "sha256": "b30908e3cf787470b9872b748d043f6bf321506a7d4698d1a26039fe6b197c31"
+    },
+    {
+      "path": "packages/standalone/web/models-dO2Z52ZC.js",
+      "bytes": 37323,
+      "sha256": "a33675fb89a4928bfe8bc70ffacaed4e108b1a1118428f34ffeca708b4e79ac2"
+    },
+    {
+      "path": "packages/standalone/web/search-RZVy3Eoo.js",
+      "bytes": 192,
+      "sha256": "389ba9f896a477ae440e011a0ee7c2b8299fe1feef8651280ab02c3d978b4ec4"
+    },
+    {
+      "path": "packages/standalone/web/settings-D20NFL0A.js",
+      "bytes": 6496,
+      "sha256": "160717e7a68b03495849fb292ed1ee9ea25b2a620cb41c9809c8135e58ea6a34"
+    },
+    {
+      "path": "packages/standalone/web/usage-BUbyDRGb.js",
+      "bytes": 10537,
+      "sha256": "9a9523923afb5134e76349c2033db6e892b3c850eacc3eeef72c75980368f4dc"
+    },
+    {
+      "path": "packages/standalone/web/x-CzfajR1e.js",
+      "bytes": 177,
+      "sha256": "516251b038dc0a2966cfe1c959b95092ec92de099efcfba4a93a60409247bc23"
+    },
+    {
+      "path": "scripts/standalone-third-party.txt",
+      "bytes": 3858,
+      "sha256": "50fbea421b6b6669b0df0d003f5366ca8c1efc91a5b674b38f268bef73b90d8b"
+    },
+    {
+      "path": "src/adapter.js",
+      "bytes": 29100,
+      "sha256": "a1d05ec49641f09d7f0ff66102cb9b8e6f0356e3fdab63b72ba3b318183cb0d5"
+    },
+    {
+      "path": "src/catalog.js",
+      "bytes": 19133,
+      "sha256": "7f20a8589b02b30770d3dfafd4301e4a998a4f5ad5c7bb394277bb1ce4d63c11"
+    },
+    {
+      "path": "src/chan-relay.js",
+      "bytes": 8014,
+      "sha256": "5700e08189dafdb6631ec9378b59b051cca3aed8f997c2e36af1ae6699ca1128"
+    },
+    {
+      "path": "src/channel.js",
+      "bytes": 1292,
+      "sha256": "c1b80fdaac75fa320fd619b5dd09d796a8c4b1c8f58af07b921f548a5604c357"
+    },
+    {
+      "path": "src/core/completion.js",
+      "bytes": 6942,
+      "sha256": "431bad026987bb5f831a6cead8a944b8cf9ff2524aa474a9f52a0cbed395e73e"
+    },
+    {
+      "path": "src/core/runtime.js",
+      "bytes": 12926,
+      "sha256": "f9b2179991bd48bf9097851050cfa43eb79e9f5f86057dfa068b168175beb941"
+    },
+    {
+      "path": "src/core/stats.js",
+      "bytes": 4210,
+      "sha256": "f3e9df8f3b12e9c11673542b17e1b8249154fa6112005b1ade6d4fb5e54a73d4"
+    },
+    {
+      "path": "src/eac-login.js",
+      "bytes": 6331,
+      "sha256": "b6016dba70d2ecc2867d9869e8b63e86595711283eefbf639675f3cfc4cd8fe2"
+    },
+    {
+      "path": "src/eac-user.js",
+      "bytes": 2952,
+      "sha256": "05155af81b9eac36dbb5eb30ad2dc42a48ad01ad6bcd5989def1c321c58b016d"
+    },
+    {
+      "path": "src/eac.js",
+      "bytes": 13455,
+      "sha256": "e9d9b69dfb2074537c645a6213dfc04762f23d5d51267d1086dfc07f1b76fc86"
+    },
+    {
+      "path": "src/effort.js",
+      "bytes": 12329,
+      "sha256": "511b178f402badfbf49d722428592626e0f3a253c5ab2b9a66a22dac4b7b9da4"
+    },
+    {
+      "path": "src/egress.js",
+      "bytes": 35243,
+      "sha256": "4811a0a1e1d42907932488ab4b480acdfbc8244a130d273d34e87530c29552f8"
+    },
+    {
+      "path": "src/feed.js",
+      "bytes": 12496,
+      "sha256": "913ef14f718f4125485f69dc38e1a6e6e2ced99c15ec4a88d235dc4b7a9d23fb"
+    },
+    {
+      "path": "src/forward.js",
+      "bytes": 46150,
+      "sha256": "321ad923de09d0cd1b2fb264ad50672c222c7ca70ecaa1aff8f375a1eee626e0"
+    },
+    {
+      "path": "src/http.js",
+      "bytes": 24912,
+      "sha256": "2afb523e410495c1af90105a1c2e9732a34fd306cf7b3829621836f48b866b83"
+    },
+    {
+      "path": "src/kilo.js",
+      "bytes": 7745,
+      "sha256": "8ece253a9ae295973103e72473b6812c2024fa26f48830295cdc7cfb56a22018"
+    },
+    {
+      "path": "src/messages.js",
+      "bytes": 19031,
+      "sha256": "cfda211cfd40b34a4f11cd3a451e59df5d9ac761ded735e3d06b7ea5974eed5f"
+    },
+    {
+      "path": "src/probe.js",
+      "bytes": 9775,
+      "sha256": "b3a65d3c2be6d8e5e3c9b305a4df64cce699915dc8c6e44273809bef689b2642"
+    },
+    {
+      "path": "src/push.js",
+      "bytes": 3210,
+      "sha256": "0e99ad2094a005846a98da69f51b0546e96dbd12b6e2448747ebaf61a987f2dd"
+    },
+    {
+      "path": "src/recovery.js",
+      "bytes": 7196,
+      "sha256": "3fcacbe793755d5101d9a331d35cd868d020a3f26b9d359bd2adfee968673169"
+    },
+    {
+      "path": "src/reload.js",
+      "bytes": 11729,
+      "sha256": "3c9acb8261ce12bb3a672ada36c4fbf2811ba6565d0fa1f1151e0a3d0344dc33"
+    },
+    {
+      "path": "src/store.js",
+      "bytes": 18141,
+      "sha256": "d6a8660321a838e65169997beb803a95e6d461cf51678b1bb4b0b99f362f71ae"
+    },
+    {
+      "path": "src/stream.js",
+      "bytes": 24934,
+      "sha256": "d7c561dab102b275e63daa68559e25a5c2b23dd534fbbac32cb17d5ac18aba17"
+    },
+    {
+      "path": "src/trust.js",
+      "bytes": 8014,
+      "sha256": "f2bf3e58fac4463a1a2bae710efa26dd8be8944fab35b0039c33f7acecc9e68c"
+    },
+    {
+      "path": "src/updater.js",
+      "bytes": 42477,
+      "sha256": "e252924dc888522b6aae5d2466aa13499b2c6a6f8e282c088d8856a00c9d9a7a"
+    },
+    {
+      "path": "src/upstream.js",
+      "bytes": 10968,
+      "sha256": "3be44eb1b5a3aad20c27112d51b40ce7db13d426f849fed32c20c80b4b5a91eb"
+    },
+    {
+      "path": "src/vault.js",
+      "bytes": 9942,
+      "sha256": "6f9d5dce4af5dc504991af32b46cd3b76dd0c587fcacb35cc6245a518201c021"
+    },
+    {
+      "path": "vendor/channel-pack/LICENSE",
+      "bytes": 1060,
+      "sha256": "0f62f49c7c75f82fe6d88eebfbdd1b647a89e42ab765ee470d0496af40ec0b25"
+    },
+    {
+      "path": "vendor/channel-pack/NOTICE.md",
+      "bytes": 3542,
+      "sha256": "a6cad78e702a992511f24863350eef53bda78773c868d933f3dc44dbb5931ab9"
+    },
+    {
+      "path": "vendor/channel-pack/qoder-auth-wasm.wasm",
+      "bytes": 298606,
+      "sha256": "6419471effa631519def7797d76d7ede38b9fcfa9a83c2148c8ef5d43355b43d"
+    }
+  ],
+  "adaptations": [
+    {
+      "path": "packages/standalone/channels/business.mjs",
+      "originalSha256": "68c36b1eb48bb5f24ad0fdfb90fc71172b6babeae65aac2bbc5eae935442732d",
+      "sha256": "7374811d2e11d9cf2906e56dd845e2b648d6898a0288550cddc2e384e2baaefd",
+      "reason": "Remove bundled Google OAuth client defaults; require local user-owned OAuth client configuration via existing environment overrides."
+    },
+    {
+      "path": "src/vault.js",
+      "originalSha256": "6f9d5dce4af5dc504991af32b46cd3b76dd0c587fcacb35cc6245a518201c021",
+      "sha256": "20b8931fe990b0b8b47597784309c02e26a6771f59ae51a5f1bb9a2b1aa6f5f8",
+      "reason": "Replace the upstream vault with an empty stub; EAC material is supplied locally by the user only."
+    },
+    {
+      "path": "packages/standalone/service.mjs",
+      "originalSha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3",
+      "sha256": "da1b72dc98e9da6e9faf36f0d889987fc0dd022a169e2b056bd837ae79cb8cea",
+      "reason": "Allow a user-selected local upstream EAC credential function; preserve server authorization and login flow."
+    }
+  ],
+  "omitted": [
+    "src/vault-data.js",
+    "src/vault-anchor.js"
+  ]
+}

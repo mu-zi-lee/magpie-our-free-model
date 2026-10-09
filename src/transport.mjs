@@ -21,7 +21,7 @@ export function cleanHeaders(input) {
 }
 
 export async function listModels(base, key, signal) {
-  const headers = { accept: 'application/json', 'user-agent': 'magpie-our-free-model/0.1.0' };
+  const headers = { accept: 'application/json', 'user-agent': 'magpie-our-free-model/0.2.0' };
   if (key) headers.authorization = `Bearer ${key}`;
   const response = await fetch(`${base}/models`, {
     headers, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
@@ -61,7 +61,7 @@ export async function forwardChat(request, body, { key, publicLane = false } = {
   const headers = cleanHeaders(request.headers);
   headers.set('content-type', 'application/json');
   headers.set('accept', 'text/event-stream');
-  headers.set('user-agent', 'magpie-our-free-model/0.1.0');
+  headers.set('user-agent', 'magpie-our-free-model/0.2.0');
   if (key) headers.set('authorization', `Bearer ${key}`);
   const response = await fetch(request.url, {
     method: 'POST', headers, body: JSON.stringify(body), signal: request.signal, redirect: 'error',

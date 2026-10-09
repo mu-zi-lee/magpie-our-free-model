@@ -1,4 +1,57 @@
-# Validation — 0.1.0
+# Validation — 0.2.0
+
+Date: 2026-10-09. Linux amd64; Node.js v24.19.0.
+
+## Managed integration
+
+- `npm run check`: four provider exports and hooks passed, no network or credentials.
+- `npm test`: **170 passed; 0 failed; 0 skipped**.
+- 54 of the 57 retained upstream paths match commit
+  `f8974369c5904858c696b520d8b9b82ad4425f78` byte-for-byte. Three adapted paths
+  match their declared hashes. Google OAuth defaults were removed; the EAC vault
+  was replaced by an empty stub; and the service accepts an optional local
+  credential function. Two encrypted EAC data files are omitted entirely.
+  These changes respond to GitHub secret scanning and automatic public-egress review.
+- Tests run the actual bundled service in its Node child, including its real
+  Worker/channel adapters, with all external fetches redirected to loopback.
+- Verified one-use console handoff and reopening, HttpOnly management cookies,
+  model discovery, channel image/context metadata, anonymous effort budgets,
+  real CodeBuddy tool calls, image bytes, EAC login/poll/signature forwarding
+  with a user-selected local fixture credential function (not original secrets),
+  model disable admission, key rotation, concurrent startup, graceful shutdown,
+  dead-child lock recovery, and account-data retention.
+- Original upstream `standalone-channels-test.mjs`: **11/11 checks passed**.
+- Original upstream `standalone-management-test.mjs`: **16/16 checks passed**.
+  These also use local fixtures; they ran in the separately checked-out pinned
+  upstream source, not against production accounts.
+- Real official Magpie CLI **0.1.1139** and its **Bun 1.4.2** host passed the
+  managed provider sign-in, model metadata and actual Chat request tests.
+  After each short-lived CLI host exits, the child stops and releases its lock.
+- The previous compatibility-host suite also passed: three signed-in providers,
+  Zen Chat/Responses/Anthropic, Kilo Chat and external-local Chat.
+
+Reproduce managed-host verification (the Node wrapper is POSIX-only):
+
+```sh
+MAGPIE_BIN=/absolute/path/to/magpie node scripts/managed-magpie-smoke.mjs
+```
+
+No live vendor inference, real GitHub EAC authorization, or real channel account
+login was performed. User-owned Gemini OAuth client configuration and Code Assist
+eligibility were not validated. Browser cookie exchange was verified over HTTP; GUI clicks
+and rendering were not exercised. Runtime management is tested on Linux only;
+macOS and Windows behavior needs testing on those platforms. The main managed
+integration test's POSIX Node wrapper skips on Windows; the other unit tests
+still run there. No Node binary is distributed. The hosted management UI and its
+backend are retained upstream code, not a newly audited implementation.
+
+Magpie does not call custom tool/event/disposal hooks. Models and requests run
+through Magpie; management stays in a loopback browser console. Signing out of
+the Magpie provider does not itself stop the shared child; exiting its host does.
+DSH announcements, plugin self-update/hot reload, LAN relay and DSH Agent resume
+are outside this version's integration scope.
+
+## Previous 0.1.0 validation record
 
 Date: 2026-10-09.
 

@@ -1,0 +1,36 @@
+{
+  "name": "our-free-model-standalone",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Our Free Model 独立本地服务，无需安装 DSH",
+  "main": "./service.mjs",
+  "exports": {
+    ".": "./service.mjs"
+  },
+  "scripts": {
+    "start": "node cli.mjs",
+    "build": "node ../../scripts/build-standalone-ui.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@radix-ui/react-slot": "1.4.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/react-virtual": "3.14.13",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "clsx": "2.1.1",
+    "esbuild": "0.25.9",
+    "lucide-react": "1.53.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "tailwind-merge": "3.3.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.2",
+    "vite": "7.3.7"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "license": "MIT"
+}

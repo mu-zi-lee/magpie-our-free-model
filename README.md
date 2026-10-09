@@ -1,6 +1,121 @@
 # Our Free Model — Magpie 插件
 
-版本 0.1.0。一个安装包提供三个供应商：
+> **原项目：[`Ebony-Vinyl/dsh-our-free-model`](https://github.com/Ebony-Vinyl/dsh-our-free-model)，作者 [Ebony-Vinyl](https://github.com/Ebony-Vinyl)。**
+> 本仓库是它的第三方 **Magpie 适配版本**，不是原项目官方发布。
+> 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
+> 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
+
+版本 **0.2.0**。推荐只安装这一个插件，启用 **`our-free-model`** 统一供应商。
+原项目运行代码固定于 [`f8974369c5904858c696b520d8b9b82ad4425f78`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/f8974369c5904858c696b520d8b9b82ad4425f78)，
+随包保存在 `vendor/ofm/`。57 个保留文件中 54 个保持原始字节；3 个有明确适配改动：
+移除内置 Google OAuth 默认凭据、将 EAC 凭据模块替换为空实现、增加可选本机 EAC 来源入口。
+两个 EAC 加密凭据数据文件不随包分发。原始 SHA-256、改动摘要和省略清单见 `vendor/ofm/UPSTREAM.json`。
+运行时不下载原项目、不执行远程安装脚本、不需要另外安装 DSH。
+
+## 一体化安装与使用（推荐）
+
+1. 安装 **Node.js 22.19+ 或 24+**。Magpie 自带 Bun，但原渠道 Worker 需要 Node；插件会自动检查。
+2. 从本仓库 Code → Download ZIP 解压，或执行下方 `git clone`。把项目目录放到固定位置。
+3. 在 Magpie 插件页面添加该目录，启用插件。
+4. 在 **Our Free Model · 一体化（全部渠道）** 供应商点击 **启用全部渠道 / 打开账号管理控制台**。
+   插件自动启动随包携带的服务，并打开本机网页控制台；无需填写本地 API Key。
+5. 匿名 Zen/Kilo 模型可直接刷新使用。EAC 先配置下方的本机原项目来源，再在控制台完成原项目的 GitHub 授权；
+   账号渠道在控制台分别登录，完成后回 Magpie 刷新模型，并为 Agent 选用 `our-free-model` 下的模型。
+
+```sh
+git clone https://github.com/mu-zi-lee/magpie-our-free-model.git
+magpie plugin add ./magpie-our-free-model
+```
+
+桌面 Magpie、`magpie web` 或 `magpie serve` 需要保持运行，内置服务随插件宿主运行。
+终端可使用 `magpie plugin login our-free-model`，但短命 CLI 命令退出后其服务也会关闭；
+要完成浏览器渠道登录，请优先使用正在运行的 Magpie 界面。
+控制台链接为十分钟内一次性链接；再次点击供应商登录按钮会生成新链接。
+链接换取 HttpOnly 管理会话，服务 API Key 不进入 URL。
+
+### 一体化版本覆盖范围
+
+| 功能 | 0.2.0 的实现与位置 |
+|---|---|
+| 匿名 Zen 与 Kilo 免费池 | 统一供应商发现模型和推理，沿用原项目路由 |
+| 十三个账号渠道的实现 | CodeArts、CodeBuddy、WorkBuddy 国际版、LobsterAI、Qoder、Qoder 中国版、TRAE、Cline、Loomy、Raccoon、MiniMax Code、ZCode、Gemini；**Gemini 需额外配置自有 OAuth 客户端** |
+| 渠道登录、账号池、轮换和续期 | 原项目渠道后端与控制台；账号凭据只保存在本机 |
+| 签到/领取积分、模型开关、积分锁定、账本与备份 | 原控制台与渠道实现；供应商停用及模型停用会阻止实际调用 |
+| EAC 登录、Star 校验、资源池 | 可选本机原项目来源及原服务端授权；凭据材料不公开打包，不修改服务端校验逻辑 |
+| 模型上下文、图片、思考档位 | 根据真实运行目录映射到 Magpie，保留上游档位 ID |
+| 用量、请求日志、服务设置 | 本机控制台；Magpie 也记录经过自身网关的请求用量 |
+| Chat Completions / Responses | 内置服务支持两种；Magpie 插件使用 Chat 接口，Magpie 负责其他客户端协议转换 |
+| 本机 API 转发 | 控制台 API 接入页复制地址和密钥；其他本机工具可调用 |
+| 生命周期与密钥轮换 | 插件启动/停止服务；控制台轮换密钥后，插件下次请求自动读取新密钥 |
+
+**仍有边界：**Magpie 没有插件自定义页面接口，所以管理界面在本机浏览器，不能嵌入 Magpie 窗口。
+原 DSH 的公告推送、插件自更新/热重载、宿主 Agent 自动续跑和局域网中继尚未迁移。
+本机服务只监听回环地址；更新此仓库后需通过 Magpie 重载插件或重启。
+原项目的 OpenCode 账号渠道仍默认停用。
+没有逐家使用真实账号验收，也不保证上游模型、登录接口和免费额度一直有效。
+
+### Gemini 的额外配置
+
+GitHub 的仓库密钥检查拦截了上游渠道包中的固定 Google OAuth 客户端凭据。
+本仓库已移除这两项内置默认值，使用原渠道已有的环境变量覆盖接口；不绕过仓库规则。
+**Gemini 在本版不是开箱即用**：需要你自己的、被相应 Google 服务接受的 OAuth 客户端，
+客户端配置和真实 Code Assist 访问资格尚未验收。其他渠道不需要这项 Google 配置。
+
+将下列文件保存在一体化数据目录下，命名为 `gemini-oauth.json`，然后重启 Magpie：
+
+```json
+{ "clientId": "YOUR_GOOGLE_OAUTH_CLIENT_ID", "clientSecret": "YOUR_GOOGLE_OAUTH_CLIENT_SECRET" }
+```
+
+这个文件是本机私有配置，不要放入插件源码目录或提交到 GitHub。
+也可在启动 Magpie 前设置 `CMDC_PAK_GOOGLE_CLIENT_ID` 和 `CMDC_PAK_GOOGLE_CLIENT_SECRET`。
+更换 OAuth 客户端后需要重新登录 Gemini；旧客户端签发的 refresh token 通常不能跨客户端使用。
+
+### EAC 的本机来源（可选）
+
+公开仓库不会携带原项目的 EAC 加密凭据及解封材料。
+如果你已合法获取原项目源码，可在插件选项中指定其本机目录：
+
+```json
+{ "managed": { "eacSourceDir": "/absolute/path/to/dsh-our-free-model" } }
+```
+
+该目录需要保留完整原项目的 `src/vault.js` 及其数据依赖。只加载你信任的、已获授权的原项目版本；
+插件会执行这份本机模块来使用原有 EAC 来源，来源目录需保持固定。
+配置后重启 Magpie，在控制台完成 GitHub 授权与原项目要求的 Star 校验。
+无需运行原项目独立服务，也不需要 DSH。未配置时 EAC 不可用，其余渠道不受影响。
+原项目地址仍是 [Ebony-Vinyl/dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)。
+插件不会自动下载或公开上传这部分材料，也不会显示其明文凭据。
+
+### 配置、数据与停止
+
+默认数据目录是 **Magpie 配置目录下的 `our-free-model/`**，与 DSH 和原独立服务默认目录隔离。
+包括本地密钥、渠道账号、EAC 授权、统计和设置；卸载源码不会主动删除账号数据。
+只有启用一体化供应商后才启动服务。完全退出 Magpie 时子服务会关闭；
+关闭一个界面窗口可能只是退到托盘，并不等于退出宿主。
+退出供应商登录会停止该账号在 Magpie 中的访问；Magpie 没有调用插件退出钩子，
+已启动的本机服务会继续存在至宿主退出，仍可从控制台退出具体渠道账号。
+
+插件选项示例（`nodePath` 可省略；自动从 PATH 查找 Node）：
+
+```json
+{
+  "managed": { "nodePath": "/absolute/path/to/node", "dataDir": "/absolute/path/to/ofm-data", "port": 18900 },
+  "zen": false,
+  "kilo": false,
+  "local": false
+}
+```
+
+Windows 的 `nodePath` 在 JSON 中例如 `C:\\Program Files\\nodejs\\node.exe`。
+默认首次使用端口 18900，冲突时自动选用可用端口，并保存实际端口；`port: 0` 每次启动自动分配。
+修改 `managed` 的运行设置后重启 Magpie。同一个数据目录只允许一个服务实例。
+若上次被强制关闭，插件只会清理经 PID 检查确认已停止的本产品锁文件。
+
+## 兼容供应商（已有 0.1.0 安装可继续使用）
+
+下面三个供应商属于同一个安装包，用于不启动内置服务或连接已有外部服务；
+它们不需要同时登录。新用户优先选择上面的 `our-free-model`。
 
 | 供应商 ID | 功能 | 需要什么 |
 |---|---|---|
@@ -10,11 +125,11 @@
 
 Zen 和 Kilo 直接请求各自上游，不需要安装 DSH，也不需要启动独立服务。
 本机桥接是可选功能；EAC 和账号渠道的登录、续期、签到仍由原项目独立服务处理，
-这一版没有把它们的账号管理原生移植进 Magpie。
+这三个兼容入口不管理账号；0.2.0 的账号管理由上面的一体化入口提供。
 
-## 安装（图形界面）
+## 兼容入口安装（图形界面）
 
-1. 在本仓库点击 Code → Download ZIP 并解压，也可解压已提供的 `magpie-our-free-model-0.1.0.zip`。
+1. 在本仓库点击 Code → Download ZIP 并解压。
 2. 将解压后的项目文件夹放到固定位置；Magpie 会就地加载，之后不要删除或移动它。
 3. 在 Magpie 的 Plugins / 插件 页面选择 Add a plugin / 添加插件，填写该文件夹的完整路径。
    选的是包含 `package.json` 和 `index.mjs` 的文件夹，不是 ZIP 文件。
@@ -25,7 +140,7 @@ Zen 和 Kilo 直接请求各自上游，不需要安装 DSH，也不需要启动
 插件文件已经是可执行 ESM，无需 `npm install`、无需编译。
 Magpie 本身会按自己的流程准备 Bun 插件运行时。
 
-## 安装（终端）
+## 兼容入口安装（终端）
 
 从 GitHub 克隆后，运行：
 
@@ -116,6 +231,7 @@ npm test
 
 ```sh
 MAGPIE_BIN=/absolute/path/to/magpie node scripts/magpie-smoke.mjs
+MAGPIE_BIN=/absolute/path/to/magpie node scripts/managed-magpie-smoke.mjs
 ```
 
 首次运行时 Magpie 可能需要下载 Bun；可设置 `MAGPIE_TEST_CACHE` 指向一个专用测试缓存目录。
@@ -124,4 +240,17 @@ MAGPIE_BIN=/absolute/path/to/magpie node scripts/magpie-smoke.mjs
 取消、推理参数与错误语义。它们不访问真实上游，也不证明所有免费模型当前可用。
 真实 Magpie 宿主验证结果与环境见 `VALIDATION.md`。
 
-上游来源、固定提交与 MIT 许可见 `NOTICE.md` 和 `vendor/zen-free/LICENSE`。
+一体化服务管理已在 Linux 验证；Windows/macOS 尚需各自平台验收。
+测试不代表逐家真实账号或当前免费额度已验收。
+
+## 来源、贡献与许可证
+
+| 组成 | 来源与归属 |
+|---|---|
+| OFM 核心、独立服务、渠道集成和控制台 | **[Ebony-Vinyl/dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)**；原作者及贡献者；MIT，原许可保存在 `vendor/ofm/LICENSE` |
+| 原项目吸收的渠道包 | [iJetLi/deepseek-harness-codearts](https://gitee.com/iJetLi/deepseek-harness-codearts)，提交 `345f0a07b22713c0ae189ca7d8b97ec4f64626c6`；原说明与 MIT 许可保留在 `vendor/ofm/vendor/channel-pack/` |
+| 兼容 Zen 供应商和流式/工具处理 | [magpie-community/plugins 的 zen-free](https://github.com/magpie-community/plugins/tree/5189b287e7aedd413a3332ef3c5da247a48193a0/packages/zen-free)；MIT，见 `vendor/zen-free/LICENSE` |
+| Magpie 自动运行、统一供应商、控制台安全交接和适配测试 | 本仓库的 Magpie 适配代码；MIT，见根目录 `LICENSE` |
+
+第三方组件的原始许可也随包保留，详见 `NOTICE.md`。
+欢迎支持并向原项目作者致谢；本仓库不把上游功能宣称为独立原创，也不代表其维护者。

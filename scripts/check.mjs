@@ -12,5 +12,5 @@ for (const [name, factory] of Object.entries(module)) {
   await hooks.config(cfg);
   console.log(`${name}: ${hooks.auth.provider} hooks OK`);
 }
-assert.deepEqual(Object.keys(cfg.provider).sort(), ['our-free-kilo', 'our-free-local', 'our-free-zen']);
+assert.deepEqual(Object.keys(cfg.provider).sort(), ['our-free-kilo', 'our-free-local', 'our-free-model', 'our-free-zen']);
 console.log('Plugin contract check passed (no network or credentials).');
