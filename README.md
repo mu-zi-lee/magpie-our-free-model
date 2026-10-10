@@ -1,7 +1,5 @@
 # Our Free Model — Magpie 插件
 
-[![Star History Chart](https://api.star-history.com/svg?repos=mu-zi-lee/magpie-our-free-model&type=Date)](https://star-history.com/#mu-zi-lee/magpie-our-free-model&Date)
-
 > **原项目：[`Ebony-Vinyl/dsh-our-free-model`](https://github.com/Ebony-Vinyl/dsh-our-free-model)，作者 [Ebony-Vinyl](https://github.com/Ebony-Vinyl)。**
 > 本仓库是它的第三方 **Magpie 适配版本**，不是原项目官方发布。
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
@@ -22,6 +20,8 @@ magpie plugin add ./magpie-our-free-model
 ```
 
 也可以在本仓库 **Code → Download ZIP** 下载并解压，然后在 Magpie 的 **插件（Plugins）** 页面添加解压后的项目目录、启用插件。安装目录需要保持固定。
+
+[![Star History Chart](https://api.star-history.com/svg?repos=mu-zi-lee/magpie-our-free-model&type=Date)](https://star-history.com/#mu-zi-lee/magpie-our-free-model&Date)
 
 ### 在 Magpie 中打开管理页面
 
