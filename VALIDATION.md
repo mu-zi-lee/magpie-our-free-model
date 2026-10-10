@@ -36,6 +36,33 @@
   successful public fixture validates this environment at test time; Quick Tunnel
   DNS delay and external service/network availability still affect startup.
 
+## Decision models (Jev) as the provider's own — 2026-10-10
+
+Jev no longer needs a provider of its own. The plugin's `config` hook declares
+`decide` on `our-free-model`, its `provider.models` marks `jev-1.13-free` with
+`decides`, and the loader's `fetch` answers `/systemone` by forwarding to Zen.
+Unit tests are in `tests/systemone.test.mjs`: the path test (`/systemone` and
+`/v1/systemone` are the decision route, `/chat/completions` is not), the
+forward (Zen's decision URL, the free pool's anonymous credential, the request
+body unchanged), the upstream status/error passed through, and the `config`
+declaration.
+
+End to end on a Magpie built with the matching change (Windows amd64, Bun
+1.4.2 plugin host, a minimal fixture plugin, a local stand-in for Zen):
+
+- `our-free-model/jev-1.13-free` is read as a decision model:
+  `kind: decision`, `native_endpoints: ["/v1/systemone"]`, and offered as a
+  routing group's classifier.
+- A chat model of the same provider is unaffected (`200`, a real completion).
+- The Jev sent as a conversation is refused with `400`: "only decides a
+  routing group's model and effort; it holds no conversation".
+- `POST /v1/systemone` reaches the plugin's own `fetch` and comes back with
+  real `choice` / `score` answers.
+
+`npm test`: **194 passed, 0 failed, 13 skipped**. The decision path needs a
+Magpie that knows a plugin provider may serve a decision API (the `decide`
+field and the per-model `decides`); an older Magpie ignores them.
+
 ## Previous 0.7.0 validation record
 
 ## Original channel bundle and remote callbacks — 2026-10-09

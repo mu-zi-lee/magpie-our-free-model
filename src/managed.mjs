@@ -1,6 +1,7 @@
 import { getManagedRuntime } from './managed-runtime.mjs';
 import { safeID, positive, fallback, chatRequest, forwardChat } from './transport.mjs';
 import { remoteByDefault } from './cloudflare-console.mjs';
+import { isSystemOne, forwardSystemOne, isDecisionModel } from './systemone.mjs';
 import fs from 'node:fs';
 
 const PROVIDER = 'our-free-model';
@@ -28,6 +29,10 @@ export function managedModel(row, base) {
       input: { text: true, image: boolean(row.vision, inputs.includes('image')), audio: false, video: false, pdf: false },
       output: { text: true, image: false, audio: false, video: false, pdf: false } },
     options: {}, headers: {}, variants, status: 'active', release_date: '',
+    // A decision model (Jev) answers System One, not a chat: magpie must
+    // read it as one, whichever magpie version, so the flag rides on the
+    // model itself (an older magpie ignores it and falls back to the id).
+    ...(isDecisionModel(id) ? { decides: true } : {}),
   };
 }
 
@@ -71,6 +76,12 @@ export async function createManagedPlugin(input, options = {}) {
       cfg.provider ??= {};
       cfg.provider[PROVIDER] ??= { name: 'Our Free Model', npm: SDK, models: {} };
       if (cfg.provider[PROVIDER].name === 'Our Free Model · 一体化（全部渠道）') cfg.provider[PROVIDER].name = 'Our Free Model';
+      // The free decision models (Jev) are part of this provider, not a
+      // second one: magpie asks them through this provider's own base, at
+      // /systemone, and the loader's fetch answers that path. The provider
+      // has to know a plugin may serve a decision API for this to take
+      // effect; a magpie without it ignores the field.
+      if (cfg.provider[PROVIDER].decide === undefined) cfg.provider[PROVIDER].decide = true;
     },
     auth: { provider: PROVIDER, maxConcurrency: 2,
       // Carry the packaged picture without depending on access to GitHub.
@@ -89,7 +100,16 @@ export async function createManagedPlugin(input, options = {}) {
           checkAuth(currentAuth);
           const current = await runtime.connection();
           if (current.base !== conn.base) throw new Error('内置服务地址发生变化，请刷新或重载供应商');
-          const { request, body } = await chatRequest(input, init, current.base);
+          const request = new Request(input, init);
+          // The decision models are this provider's too (config's decide):
+          // magpie posts a System One question at the same base, and it
+          // goes to Zen's /v1/systemone unchanged. The chat models stay on
+          // the service below, which owns their accounts.
+          if (request.method === 'POST' && isSystemOne(new URL(request.url).pathname)) {
+            request.signal.throwIfAborted();
+            return forwardSystemOne(request, await request.text());
+          }
+          const { body } = await chatRequest(request, undefined, current.base);
           request.signal.throwIfAborted();
           if (!await runtime.command('admit', { model: body.model }, request.signal)) {
             return Response.json({ error: { type: 'invalid_request_error', message: '模型不存在、已停用或没有可用账号；请在控制台检查并刷新模型' } }, { status: 404 });
