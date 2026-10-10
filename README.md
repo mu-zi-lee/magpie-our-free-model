@@ -21,7 +21,7 @@ magpie plugin add ./magpie-our-free-model
 
 也可以在本仓库 **Code → Download ZIP** 下载并解压，然后在 Magpie 的 **插件（Plugins）** 页面添加解压后的项目目录、启用插件。安装目录需要保持固定。
 
-[![Star History Chart](https://api.star-history.com/svg?repos=mu-zi-lee/magpie-our-free-model&type=Date)](https://star-history.com/#mu-zi-lee/magpie-our-free-model&Date)
+[![Star History Chart](https://api.star-history.com/chart?repos=mu-zi-lee/magpie-our-free-model&type=timeline&legend=bottom-right)](https://www.star-history.com/?repos=mu-zi-lee%2Fmagpie-our-free-model&type=date&releases=&legend=bottom-right)
 
 ### 在 Magpie 中打开管理页面
 
