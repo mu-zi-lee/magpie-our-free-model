@@ -288,6 +288,34 @@ Windows 的 `nodePath` 在 JSON 中例如 `C:\\Program Files\\nodejs\\node.exe`�
 修改 `managed` 的运行设置后重启 Magpie。同一个数据目录只允许一个服务实例。
 若上次被强制关闭，插件只会清理经 PID 检查确认已停止的本产品锁文件。
 
+### 决策模型（Jev）
+
+**Jev 就是这个供应商的一个模型，不需要再建一个供应商。** 插件在 `config` 钩子里
+给 `our-free-model` 声明了 `decide`，并给 `jev-1.13-free` 打了决策模型标记；
+Magpie 据此把该模型认成决策模型：路由组可以直接把它当分类器，agent 拿它聊天会被
+明确拒绝，而 `POST /v1/systemone` 的请求走插件自己的 `fetch`，原样转给 Zen 的决策接口。
+
+```sh
+# 路由组直接把 Jev 当分类器
+magpie group set <id> effort=auto classifier=our-free-model/jev-1.13-free
+
+# 直接问 Magpie 自己的 System One
+curl -s http://127.0.0.1:3425/v1/systemone \
+  -H "Authorization: Bearer magpie" -H "Content-Type: application/json" \
+  -d '{"model":"our-free-model/jev-1.13-free","state":"给 users.email 加索引",
+       "questions":{"task":{"type":"choice","instructions":"这是哪类工作？",
+                            "criteria":{"quick":"提问","code":"写代码"}},
+                    "difficulty":{"type":"score","instructions":"有多难？",
+                                  "criteria":["容易","中等","困难"]}}}'
+# {"model":"jev-1.13-free","answers":{"task":{"choice":"code","confidence":0.93,…},…
+```
+
+说明：
+
+- 分类器（`classifier`）就是 `our-free-model/jev-1.13-free`：Jev 是免费池里的决策模型，
+  沿用匿名凭据与 OpenCode 客户端标识，**不需要登录**；模型与额度仍由 Zen 的免费池规则决定。
+- 只用聊天模型的用户不需要做任何事：不把它当分类器即可，它也不出现在 agent 的模型列表里。
+
 ## 可选兼容入口（默认不加载）
 
 旧的三个独立供应商保存在 `compatibility.mjs`，仅供需要直接连接 Zen/Kilo 或已有外部服务的高级用法。
