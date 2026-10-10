@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { buildStats } from '../../src/core/stats.js'
+import { effortsFor } from '../../src/effort.js'
 import { generateKey } from '../../src/forward.js'
 import { structuralRejection } from '../../src/trust.js'
 import { openLoginTerminal } from './login-terminal.mjs'
@@ -145,7 +146,29 @@ export function createManagement({ stores, runtime, channels, eac, info, onSetti
         availability: entry.channel ? 'listed' : available.results?.[entry.id]?.state ?? 'unknown',
         ttftMs: available.results?.[entry.id]?.ttftMs ?? null,
       })),
+      managedModels: managedModelRows(state.catalog, routable),
     }
+  }
+
+  /**
+   * The plugin host reads this instead of rebuilding rows over HTTP:
+   * `/api/management/summary` flattens each model's thinking menu to a
+   * boolean and `/v1/models` drops the name and the menu entirely, so a
+   * second Magpie host (a CLI run next to the desktop app) could only publish
+   * wrong capability metadata. Same shape the plugin's own runner emits.
+   */
+  function managedModelRows(catalog, routable) {
+    return catalog
+      .filter(entry => routable.has(entry.id))
+      .map(entry => ({
+        id: entry.id, name: entry.name, vision: entry.vision,
+        context_window: entry.contextWindow ?? entry.context_window,
+        max_tokens: entry.maxOutput ?? entry.max_tokens,
+        input: entry.input,
+        reasoning: typeof entry.reasoning === 'object' ? entry.reasoning : entry.reasoning === true,
+        reasoning_efforts: entry.reasoning && typeof entry.reasoning === 'object'
+          ? entry.reasoning.efforts : effortsFor(entry),
+      }))
   }
 
   async function route(req, res, pathname) {
