@@ -64,8 +64,8 @@
     },
     {
       "path": "packages/standalone/management.mjs",
-      "bytes": 15804,
-      "sha256": "81889f0c1d4c7a1fcf3120e9998bae3cafe4270ed6fca8d00e5e697b5e61e510"
+      "bytes": 17243,
+      "sha256": "1d28cfacdfa3d22e3392d6bdbe238954176b2792d1e0133789020cd641254ddf"
     },
     {
       "path": "packages/standalone/package.json",
@@ -330,6 +330,11 @@
       "originalSha256": "75601bec5d900b6d042458cead016308da05245df711d0c1f6c2d94b8b39a966",
       "sha256": "caa8fddc98544bc6eb27b9405deb4d9e1492026b2d1e80ea5519075312f1006e",
       "reason": "Select the verified unchanged upstream channel bundle in the Worker; preserve original login, accounts and model logic."
+    },
+    {
+      "path": "packages/standalone/management.mjs",
+      "originalSha256": "81889f0c1d4c7a1fcf3120e9998bae3cafe4270ed6fca8d00e5e697b5e61e510",
+      "sha256": "1d28cfacdfa3d22e3392d6bdbe238954176b2792d1e0133789020cd641254ddf"
     }
   ],
   "omitted": [
