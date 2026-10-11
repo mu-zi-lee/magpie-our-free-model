@@ -33,23 +33,9 @@ async function probe(base, signal) {
   return health;
 }
 
-async function openSession(base, key, signal) {
-  const response = await fetch(`${base}/api/management/session`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', origin: base },
-    body: JSON.stringify({ key }),
-    redirect: 'error',
-    signal: AbortSignal.any([signal ?? new AbortController().signal, AbortSignal.timeout(READ_TIMEOUT)]),
-  });
-  const cookie = response.headers.get('set-cookie');
-  await response.body?.cancel();
-  if (!response.ok || !cookie) throw new Error('内置服务会话交换失败');
-  return cookie.split(';')[0];
-}
-
-async function getJson(base, cookie, route, signal) {
+async function getJson(base, key, route, signal) {
   const response = await fetch(`${base}${route}`, {
-    headers: { accept: 'application/json', cookie, origin: base },
+    headers: { accept: 'application/json', authorization: `Bearer ${key}`, origin: base },
     redirect: 'error',
     signal: AbortSignal.any([signal ?? new AbortController().signal, AbortSignal.timeout(READ_TIMEOUT)]),
   });
@@ -63,8 +49,8 @@ async function getJson(base, cookie, route, signal) {
  * discovery: it drops the display name, the thinking menu and the input
  * modalities, so copying it declares wrong capabilities to the agent.
  */
-async function modelRows(base, cookie, signal) {
-  const summary = await getJson(base, cookie, '/api/management/summary', signal);
+async function modelRows(base, key, signal) {
+  const summary = await getJson(base, key, '/api/management/summary', signal);
   const rows = Array.isArray(summary?.managedModels) ? summary.managedModels : [];
   const routable = new Set((Array.isArray(summary?.catalog) ? summary.catalog : [])
     .filter(row => row.routable === true)
@@ -75,10 +61,10 @@ async function modelRows(base, cookie, signal) {
   };
 }
 
-async function rpc(base, cookie, method, payload, signal) {
+async function rpc(base, key, method, payload, signal) {
   const response = await fetch(`${base}/api/management/channels/rpc`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie, origin: base },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${key}`, origin: base },
     body: JSON.stringify({ method, payload }),
     redirect: 'error',
     signal: AbortSignal.any([signal ?? new AbortController().signal, AbortSignal.timeout(30000)]),
@@ -97,18 +83,18 @@ export async function attachLiveService(dataDir, { signal } = {}) {
   if (typeof settings.forwardKey !== 'string' || settings.forwardKey === '') throw new Error('内置服务密钥不可用');
   const base = baseOf(dataDir, settings);
   await probe(base, signal);
-  const cookie = await openSession(base, settings.forwardKey, signal);
-  const cached = await modelRows(base, cookie, signal);
+  const key = settings.forwardKey;
+  const cached = await modelRows(base, key, signal);
   return {
     url: base,
     keyFile: path.join(dataDir, 'settings.json'),
     managementBase: base,
     async managementSession() {
       return {
-        cookie: await openSession(base, settings.forwardKey, signal),
+        key,
         login: settings.managementLoginToken ?? '',
         routable: cached.routable,
-        models: async () => (await modelRows(base, cookie, signal)).rows,
+        models: async () => (await modelRows(base, key, signal)).rows,
       };
     },
     async models() { return cached.rows; },

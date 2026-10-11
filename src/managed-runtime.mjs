@@ -188,7 +188,7 @@ async function attachedCommand(state, type, payload, signal) {
   const call = async (method, body) => {
     const response = await fetch(`${state.managementBase}/api/management/${method}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', origin: state.base, cookie: session },
+      headers: { 'content-type': 'application/json', origin: state.base, authorization: `Bearer ${session.key}` },
       body: JSON.stringify(body),
       redirect: 'error',
       signal: AbortSignal.any([signal ?? new AbortController().signal, AbortSignal.timeout(type === 'console' ? 180000 : 20000)]),
