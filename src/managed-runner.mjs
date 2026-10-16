@@ -31,6 +31,27 @@ const stop = () => {
 };
 process.once('SIGINT', stop);
 process.once('SIGTERM', stop);
+// The rows Magpie is given, also left in the data directory so another
+// Magpie process (a terminal's `magpie sync` while the app owns the service)
+// lists the same models instead of an old copy.
+function managedRows() {
+  const allowed = new Set(service.runtime.publicModelRows().map(row => row.id));
+  const rows = service.runtime.catalog.filter(row => allowed.has(row.id)).map(row => ({
+    id: row.id, name: row.name, vision: row.vision,
+    context_window: row.contextWindow ?? row.context_window,
+    max_tokens: row.maxOutput ?? row.max_tokens,
+    input: row.input,
+    reasoning: typeof row.reasoning === 'object' ? row.reasoning : row.reasoning === true,
+    reasoning_efforts: row.reasoning && typeof row.reasoning === 'object' ? row.reasoning.efforts : effortsFor(row),
+  }));
+  try {
+    const file = path.join(runnerSettings.dataDir, 'managed-models.json');
+    const temporary = `${file}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify({ pid: process.pid, url: service.url, rows }), { mode: 0o600 });
+    fs.renameSync(temporary, file);
+  } catch {}
+  return rows;
+}
 let started = false;
 lines.once('line', async line => {
   started = true;
@@ -54,6 +75,10 @@ lines.once('line', async line => {
     if (process.stdin.readableEnded) return stop();
     process.stdout.write(JSON.stringify({ type: 'ready', url: service.url,
       keyFile: service.keyFile, pid: process.pid }) + '\n');
+    // The catalog fills in after start: keep the shared copy current.
+    const share = () => { try { if (!stopped) managedRows(); } catch {} };
+    share();
+    setInterval(share, 60000).unref();
     parentWatch = setInterval(() => {
       try { process.kill(settings.parentPid, 0); }
       catch (error) { if (error.code === 'ESRCH') void stop(); }
@@ -106,17 +131,8 @@ lines.on('line', async line => {
           models.value.models.some(row => row.id === id && !row.disabled && !row.dead);
       } else value = service.runtime.publicModelRows().some(row => row.id === model);
     }
-    else if (command.type === 'models') {
-      const allowed = new Set(service.runtime.publicModelRows().map(row => row.id));
-      value = service.runtime.catalog.filter(row => allowed.has(row.id)).map(row => ({
-        id: row.id, name: row.name, vision: row.vision,
-        context_window: row.contextWindow ?? row.context_window,
-        max_tokens: row.maxOutput ?? row.max_tokens,
-        input: row.input,
-        reasoning: typeof row.reasoning === 'object' ? row.reasoning : row.reasoning === true,
-        reasoning_efforts: row.reasoning && typeof row.reasoning === 'object' ? row.reasoning.efforts : effortsFor(row),
-      }));
-    } else throw new Error('Unknown managed command');
+    else if (command.type === 'models') value = managedRows();
+    else throw new Error('Unknown managed command');
     process.stdout.write(JSON.stringify({ id: command.id, value }) + '\n');
   } catch (error) { process.stdout.write(JSON.stringify({ id: command.id,
     error: command.type === 'console' ? error.message : '内置服务无法执行管理请求' }) + '\n'); }

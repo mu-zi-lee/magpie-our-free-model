@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createServer, request as httpRequest } from 'node:http';
 import { once } from 'node:events';
-import { createManagedPlugin, managedModel } from '../src/managed.mjs';
+import { createManagedPlugin, managedModel, adaptChannelRequest } from '../src/managed.mjs';
 import { getManagedRuntime } from '../src/managed-runtime.mjs';
 import uninstall from '../uninstall.mjs';
 import { CHANNEL_COMMIT, CHANNEL_FILES } from '../src/channel-source.mjs';
@@ -65,6 +65,29 @@ test('managed metadata preserves native effort ids and declared image/context ca
   assert.equal(plain.capabilities.input.image, false);
   assert.deepEqual(plain.variants, {});
   assert.equal(managedModel({ id: '__proto__' }, ''), undefined);
+});
+
+test('managed metadata offers canonical effort names when the service maps channel levels', () => {
+  const model = managedModel({ id: 'raccoon/test', reasoning: { efforts: [
+    { id: 'on', canonical: 'high' }, { id: 'off', canonical: 'none' }, { id: 'extra_high', canonical: 'xhigh' }, { id: 'custom' },
+  ] } }, 'http://127.0.0.1/v1');
+  assert.deepEqual(Object.keys(model.variants), ['high', 'none', 'xhigh', 'custom']);
+  assert.deepEqual(model.variants.none, { reasoningEffort: 'none' });
+  assert.equal(model.variants.on, undefined);
+});
+
+test('channel request rules: WorkBuddy system prompt and CodeArts output cap', () => {
+  const workbuddy = adaptChannelRequest({ model: 'workbuddy/m', messages: [{ role: 'user', content: 'hi' }] });
+  assert.equal(workbuddy.messages[0].role, 'system');
+  assert.equal(workbuddy.messages[1].content, 'hi');
+  const existing = [{ role: 'developer', content: 'rules' }, { role: 'user', content: 'hi' }];
+  assert.deepEqual(adaptChannelRequest({ model: 'workbuddy/m', messages: existing }).messages, existing);
+  const codearts = adaptChannelRequest({ model: 'codearts/m', max_tokens: 128000, max_completion_tokens: 70000, messages: [] });
+  assert.equal(codearts.max_tokens, 65536);
+  assert.equal(codearts.max_completion_tokens, 65536);
+  assert.equal(adaptChannelRequest({ model: 'codearts/m', max_tokens: 4096 }).max_tokens, 4096);
+  const other = { model: 'buddy/m', max_tokens: 128000, messages: [{ role: 'user', content: 'hi' }] };
+  assert.deepEqual(adaptChannelRequest(structuredClone(other)), other);
 });
 
 test('managed lifecycle validates settings, prevents conflicting instances and diagnoses missing Node', async t => {
