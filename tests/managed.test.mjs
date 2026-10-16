@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createServer, request as httpRequest } from 'node:http';
 import { once } from 'node:events';
 import { createManagedPlugin, managedModel, adaptChannelRequest } from '../src/managed.mjs';
+import { patchStreamFailure } from '../scripts/ofm-forward-patch.mjs';
 import { getManagedRuntime } from '../src/managed-runtime.mjs';
 import uninstall from '../uninstall.mjs';
 import { CHANNEL_COMMIT, CHANNEL_FILES } from '../src/channel-source.mjs';
@@ -88,6 +89,13 @@ test('channel request rules: WorkBuddy system prompt and CodeArts output cap', (
   assert.equal(adaptChannelRequest({ model: 'codearts/m', max_tokens: 4096 }).max_tokens, 4096);
   const other = { model: 'buddy/m', max_tokens: 128000, messages: [{ role: 'user', content: 'hi' }] };
   assert.deepEqual(adaptChannelRequest(structuredClone(other)), other);
+});
+
+test('forward stream failure patch reports the reason and refuses changed upstream code', () => {
+  const forward = fs.readFileSync(path.join(root, 'vendor/ofm/src/forward.js'), 'utf8');
+  assert.match(forward, /else if \(!res\.writableEnded\)/);
+  assert.match(forward, /type: 'server_error' \} \}\)\}\\n\\n`\)/);
+  assert.throws(() => patchStreamFailure(forward), /forward stream failure handling changed/);
 });
 
 test('managed lifecycle validates settings, prevents conflicting instances and diagnoses missing Node', async t => {
