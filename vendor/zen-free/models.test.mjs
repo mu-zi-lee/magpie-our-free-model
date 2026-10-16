@@ -24,7 +24,7 @@ const provider = {
   },
 };
 const ids = Object.keys(provider.models).filter((id) => id !== "gone-free");
-const baseURL = "https://opencode.ai/zen/v1";
+const baseURL = "https://opencode.ai/inference/v1";
 
 test("lists only live free models with supported protocols and excludes retired models", async () => {
   const { buildModels } = await subject;
@@ -51,8 +51,8 @@ test("endpoint documentation overrides inherited SDK and excludes SystemOne", as
   assert.equal(typeof parseProtocolDocs, "function", "protocol parsing must be implemented");
   const protocols = parseProtocolDocs(
     [
-      "| Coder | coder-free | `https://opencode.ai/zen/v1/messages` | sdk |",
-      "| Decision | decision-free | `https://opencode.ai/zen/v1/systemone` | - |",
+      "| Coder | coder-free | `https://opencode.ai/inference/v1/messages` | sdk |",
+      "| Decision | decision-free | `https://opencode.ai/inference/v1/systemone` | - |",
     ].join("\n"),
   );
   const models = buildModels(ids, provider, protocols, baseURL);

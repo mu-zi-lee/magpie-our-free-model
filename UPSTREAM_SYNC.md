@@ -1,8 +1,28 @@
 # Upstream Maintenance
 
-Target repository: `mu-zi-lee/magpie-our-free-model`, branch `main`.
+Target repository: `Gyarados4157/magpie-our-free-model`, branch `main`.
 Source: `Ebony-Vinyl/dsh-our-free-model`.
 The source snapshot, not this document, is authoritative: `vendor/ofm/UPSTREAM.json`.
+
+## 0.10.0 - 2026-10-16
+
+Reviewed the changes from `e9c4b70d913116284692d7b206a63f39ad6fe8cc`
+to `e937077fa92d8cc21d3108d5d1e1f32f37e2534e` (v2.3.0 plus the fixes merged after it).
+
+Adopted:
+
+- Free lane moved to `/inference/v1` with minted session ids, `x-opencode-session-id`,
+  the `bash`/`read` tool fingerprint and `FreeTierError` treated as a lane lock.
+  Minted sessions persist in the plugin data directory (`session-map.json`), not `~/.dsh`,
+  and are removed on uninstall.
+- Standalone User-Agent: the anonymous lane refuses the `our-free-model-standalone` token,
+  so the managed service sends `ofm-standalone/<version>`.
+- Stale `service.lock` recovery on Windows and Linux, plus the desktop OpenCode request
+  protocol and tool-name case normalization in the account channels.
+- Independent **插件升级** page in the standalone console, separate from service settings.
+- The optional `our-free-zen` compatibility entry uses the same wire and reuses the
+  upstream fingerprint implementation instead of a second copy.
+
 
 ## 0.9.0 - 2026-10-11
 

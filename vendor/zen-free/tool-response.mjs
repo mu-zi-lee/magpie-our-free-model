@@ -33,15 +33,18 @@ function list(value) {
 function nameGuard(policy) {
   const declared = new Set(policy.declared);
   const injected = new Set(policy.injected);
-  const folded = new Map();
+  const folded = policy.folded ?? new Map();
+  const declaredFolded = new Map();
   for (const name of declared) {
     const key = name.toLowerCase();
-    folded.set(key, folded.has(key) ? null : name);
+    declaredFolded.set(key, declaredFolded.has(key) ? null : name);
   }
   return (name) => {
     if (typeof name !== "string" || !name) throw new GuardError("Missing upstream tool name");
     if (declared.has(name)) return name;
-    const match = injected.has(name) && folded.get(name.toLowerCase());
+    const restored = injected.has(name) && folded.get(name);
+    if (restored) return restored;
+    const match = injected.has(name) && declaredFolded.get(name.toLowerCase());
     if (match) return match;
     throw new GuardError("Upstream called a tool not declared by the client");
   };

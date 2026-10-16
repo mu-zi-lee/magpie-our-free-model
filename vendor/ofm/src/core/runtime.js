@@ -238,7 +238,7 @@ export function createModelRuntime({
   async function fetchListing() {
     if (disposed) return { data: [] }
     const started = Date.now()
-    const listing = await getJson('/zen/v1/models', {
+    const listing = await getJson('/inference/v1/models', {
       session: sessionForConversation('catalog:our-free-model'),
       requestId: mintRequestId(),
       attributionUserAgent,

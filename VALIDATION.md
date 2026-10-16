@@ -1,4 +1,15 @@
-# Validation — 0.9.0
+# Validation — 0.10.0
+
+## Upstream standalone/core/channel refresh - 2026-10-16
+
+- Reviewed upstream changes from `e9c4b70d913116284692d7b206a63f39ad6fe8cc`
+  to `e937077fa92d8cc21d3108d5d1e1f32f37e2534e`. The snapshot retains 90
+  original paths: 79 byte-for-byte copies and eleven recorded adapted paths.
+  All snapshot SHA-256 digests and channel/EAC pin consistency checks pass.
+- `npm test`: 217 tests, 215 pass, 0 fail. The two remaining are the
+  30-minute Cloudflare session-expiry test, which passes when run alone and
+  times out under the full-suite deadline.
+- `node scripts/check.mjs`: plugin contract passes.
 
 ## Upstream standalone/core/channel refresh - 2026-10-11
 

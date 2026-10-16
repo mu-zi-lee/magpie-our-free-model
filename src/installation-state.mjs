@@ -11,7 +11,7 @@ const LOCK = '.magpie-ofm-lifecycle.lock';
 const packageDir = fileURLToPath(new URL('../', import.meta.url));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const files = ['settings.json', 'stats.json', 'availability.json', 'catalog.json',
-  'channel-credentials.json', 'eac-user.json', 'gemini-oauth.json', 'loomy-wechat.json', 'service.lock'];
+  'channel-credentials.json', 'eac-user.json', 'gemini-oauth.json', 'loomy-wechat.json', 'service.lock', 'session-map.json'];
 const runtimeName = name => /^(?:node-v\d+\.\d+\.\d+-[a-z0-9-]+|tailscale-\d+\.\d+\.\d+-[a-z0-9-]+|cloudflared-\d{4}\.\d+\.\d+-[a-z0-9-]+|(?:eac|channels)-[a-f0-9]{40}|\.(?:node|tailscale|eac|channels|cloudflared)-install-[a-zA-Z0-9]+)$/.test(name);
 
 export function validateDataDir(dataDir, directory) {

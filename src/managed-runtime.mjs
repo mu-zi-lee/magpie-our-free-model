@@ -9,13 +9,13 @@ import { registerInstallation, withInstallationLock, validateDataDir } from './i
 
 const instances = new Map();
 const runner = fileURLToPath(new URL('./managed-runner.mjs', import.meta.url));
-const environment = () => {
+const environment = dataDir => {
   const env = { ...process.env };
   // Never inject another runtime's loaders or reuse DSH's configuration.
   delete env.NODE_OPTIONS;
   delete env.NODE_PATH;
   delete env.DSH_HOME;
-  delete env.OFM_HOME;
+  env.OFM_HOME = dataDir;
   return env;
 };
 
@@ -66,8 +66,8 @@ export function getManagedRuntime(input = {}, options = {}) {
         await registerInstallation(directory, dataDir);
         return withInstallationLock(dataDir, async () => {
           if (disposed) throw new Error('本插件正在卸载，不能重新启动服务');
-          const resolvedNode = await resolveNodeRuntime(options, dataDir, environment());
-          const processHandle = spawn(resolvedNode, [runner], { env: environment(), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
+          const resolvedNode = await resolveNodeRuntime(options, dataDir, environment(dataDir));
+          const processHandle = spawn(resolvedNode, [runner], { env: environment(dataDir), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
           child = processHandle;
           processHandle.stdin.on('error', () => {});
           const exit = new Promise(resolve => processHandle.once('exit', resolve));

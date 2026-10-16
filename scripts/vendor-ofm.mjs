@@ -7,8 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { removeEmbeddedOAuthDefaults, externalizeEacCredentials } from './ofm-google-config-patch.mjs';
 import { patchChannelSource } from './ofm-channel-source-patch.mjs';
 import { patchEacDiagnostics, patchEacSetupUi } from './ofm-eac-setup-patch.mjs';
+import { patchSessionStore } from './ofm-session-store-patch.mjs';
+import { patchConsoleUpgrade } from './ofm-console-upgrade-patch.mjs';
 
-const pin = 'e9c4b70d913116284692d7b206a63f39ad6fe8cc';
+const pin = 'e937077fa92d8cc21d3108d5d1e1f32f37e2534e';
 const root = path.resolve(process.argv[2] || '');
 if (!process.argv[2]) throw new Error('Usage: node scripts/vendor-ofm.mjs /path/to/upstream');
 if (execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim() !== pin) throw new Error(`Expected upstream ${pin}`);
@@ -52,6 +54,7 @@ for (const [file, patch, reason] of [
   ...['packages/standalone/service.mjs', 'packages/standalone/channels/runtime.mjs', 'packages/standalone/channels/worker.mjs']
     .map(file => [file, source => patchChannelSource(file, source), 'Select verified unchanged upstream channel business in the Worker.'
       + (file.endsWith('/worker.mjs') ? ' Accept harness messages/tools from the native Anthropic gateway; retain model enablement and effort/budget normalization.' : '')]),
+  ['src/upstream.js', patchSessionStore, 'Persist minted free-lane sessions in the standalone data directory.'],
 ]) {
   const target = path.join(dest, file);
   const updated = patch(fs.readFileSync(target, 'utf8'));
@@ -59,6 +62,12 @@ for (const [file, patch, reason] of [
   const existing = adaptations.find(row => row.path === file);
   if (existing) { existing.sha256 = digest(updated); existing.reason += ` ${reason}`; }
   else adaptations.push({ path: file, originalSha256: manifest.find(row => row.path === file).sha256, sha256: digest(updated), reason });
+}
+const consoleFiles = patchConsoleUpgrade(dest);
+for (const file of [consoleFiles.appFile, consoleFiles.assetsFile]) {
+  const updated = fs.readFileSync(path.join(dest, file));
+  adaptations.push({ path: file, originalSha256: manifest.find(row => row.path === file).sha256,
+    sha256: digest(updated), reason: 'Expose a Magpie plugin-upgrade page independent of service settings.' });
 }
 const omitted = ['src/vault-data.js', 'src/vault-anchor.js'];
 fs.writeFileSync(path.join(dest, 'UPSTREAM.json'), JSON.stringify({ repository: 'https://github.com/Ebony-Vinyl/dsh-our-free-model', commit: pin,

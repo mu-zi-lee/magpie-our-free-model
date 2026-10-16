@@ -1,0 +1,324 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Free Model</title>
+<style>
+  /* ===== 主题检测 ===== */
+  :root {
+    --duration: 1.4s;
+  }
+
+  /* ===== 夜·赛博终端 ===== */
+  [data-theme="dark"] {
+    --bg: #0a0d13;
+    --accent: #00d0c0;
+    --accent-dim: rgba(0,208,192,0.15);
+    --accent-glow: rgba(0,208,192,0.4);
+    --text: #c8d0d8;
+    --text-dim: #5a6a7a;
+    --cursor: #00d0c0;
+    --grid: rgba(0,208,192,0.03);
+    --corner: rgba(0,208,192,0.6);
+  }
+
+  /* ===== 昼·流光岁月 ===== */
+  [data-theme="light"] {
+    --bg: #f9f7f2;
+    --accent: #b45309;
+    --accent-dim: rgba(180,83,9,0.08);
+    --accent-glow: rgba(180,83,9,0.25);
+    --text: #3a2e1e;
+    --text-dim: #a89880;
+    --cursor: #b45309;
+    --grid: rgba(180,83,9,0.02);
+    --corner: rgba(180,83,9,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw; height: 100vh;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', monospace;
+    transition: background 0.3s;
+  }
+
+  /* ===== 背景网格 ===== */
+  .grid {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: grid-fade-in 0.8s ease-out;
+  }
+
+  /* ===== 四角刻度线 ===== */
+  .corner {
+    position: fixed; width: 24px; height: 24px;
+    border-color: var(--corner);
+    border-style: solid;
+    border-width: 0;
+    opacity: 0;
+    animation: corner-in 0.6s ease-out 0.2s forwards;
+  }
+  .corner.tl { top: 20px; left: 20px; border-top-width: 1px; border-left-width: 1px; }
+  .corner.tr { top: 20px; right: 20px; border-top-width: 1px; border-right-width: 1px; }
+  .corner.bl { bottom: 20px; left: 20px; border-bottom-width: 1px; border-left-width: 1px; }
+  .corner.br { bottom: 20px; right: 20px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  /* ===== 主内容区 ===== */
+  .content {
+    text-align: center;
+    z-index: 1;
+    opacity: 0;
+    animation: content-in 0.5s ease-out 0.4s forwards;
+  }
+
+  /* ===== Logo 文字 ===== */
+  .logo {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: var(--text);
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  /* 夜主题：打字机效果 */
+  [data-theme="dark"] .logo {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    letter-spacing: 8px;
+  }
+  [data-theme="dark"] .logo::after {
+    content: '▮';
+    color: var(--cursor);
+    animation: blink 0.7s step-end infinite;
+    margin-left: 4px;
+  }
+
+  /* 昼主题：衬线字体 */
+  [data-theme="light"] .logo {
+    font-family: Georgia, 'Times New Roman', serif;
+    letter-spacing: 4px;
+    font-weight: 400;
+  }
+  [data-theme="light"] .logo::after {
+    content: '';
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+  }
+
+  /* ===== 进度条 ===== */
+  .progress-track {
+    width: 200px; height: 2px;
+    background: var(--accent-dim);
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    position: relative;
+    animation: progress-fill var(--duration) cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  /* 夜主题：进度条 glitch */
+  [data-theme="dark"] .progress-bar {
+    animation: progress-fill var(--duration) cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards,
+               glitch 0.15s ease-in-out 1.2s;
+  }
+
+  /* 昼主题：进度条光束 */
+  [data-theme="light"] .progress-bar {
+    background: linear-gradient(90deg, var(--accent), #d4956a);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  /* ===== 状态文字 ===== */
+  .status {
+    margin-top: 16px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    opacity: 0;
+    animation: status-in 0.3s ease-out 0.8s forwards;
+  }
+
+  /* ===== 扫描线（夜主题） ===== */
+  [data-theme="dark"] .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3;
+    animation: scan 2s linear infinite;
+  }
+
+  /* ===== 光束（昼主题） ===== */
+  [data-theme="light"] .beam {
+    position: fixed;
+    bottom: -20%; left: -10%;
+    width: 60%; height: 140%;
+    background: linear-gradient(135deg, transparent 40%, var(--accent-dim) 50%, transparent 60%);
+    transform: rotate(-15deg);
+    animation: beam-sweep 1.8s ease-out 0.3s;
+    pointer-events: none;
+  }
+
+  /* ===== 完成淡出 ===== */
+  .fade-out {
+    animation: fade-out 0.3s ease-in forwards;
+  }
+
+  /* ===== 关键帧 ===== */
+  @keyframes grid-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes corner-in {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes content-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes progress-fill {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+
+  @keyframes status-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes glitch {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    50% { transform: translateX(2px); }
+    75% { transform: translateX(-1px); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes scan {
+    from { top: -1px; }
+    to { top: 100%; }
+  }
+
+  @keyframes beam-sweep {
+    from { transform: rotate(-15deg) translateX(-100%); opacity: 0; }
+    30% { opacity: 1; }
+    to { transform: rotate(-15deg) translateX(200%); opacity: 0; }
+  }
+
+  @keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  /* ===== 减少动效 ===== */
+  @media (prefers-reduced-motion: reduce) {
+    .corner, .content, .progress-bar, .status {
+      animation-duration: 0.01s !important;
+    }
+    .scanline, .beam { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 背景网格 -->
+<div class="grid"></div>
+
+<!-- 四角刻度线 -->
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<!-- 夜主题扫描线 -->
+<div class="scanline" id="scanline"></div>
+
+<!-- 昼主题光束 -->
+<div class="beam" id="beam"></div>
+
+<!-- 主内容 -->
+<div class="content">
+  <div class="logo">OUR FREE MODEL</div>
+  <div class="subtitle">Local Console</div>
+  <div class="progress-track">
+    <div class="progress-bar"></div>
+  </div>
+  <div class="status" id="status">正在初始化...</div>
+</div>
+
+<script>
+// 主题检测：读 localStorage 或系统偏好
+function detectTheme() {
+  try {
+    const saved = localStorage.getItem('ofm-theme');
+    if (saved) return saved;
+  } catch(e) {}
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+const theme = detectTheme();
+document.documentElement.setAttribute('data-theme', theme);
+
+// 隐藏不适用主题的装饰
+if (theme === 'dark') {
+  document.getElementById('beam').style.display = 'none';
+} else {
+  document.getElementById('scanline').style.display = 'none';
+}
+
+// 模拟进度状态
+const statusEl = document.getElementById('status');
+const messages = theme === 'dark'
+  ? ['正在初始化...', '校准信号...', '连接本地服务...', '就绪']
+  : ['正在初始化...', '加载模块...', '连接本地服务...', '就绪'];
+
+let step = 0;
+const interval = setInterval(() => {
+  step++;
+  if (step < messages.length) {
+    statusEl.textContent = messages[step];
+  } else {
+    clearInterval(interval);
+    // 完成后淡出
+    setTimeout(() => {
+      document.body.classList.add('fade-out');
+      setTimeout(() => {
+        // 窗口由 Rust 在真实服务握手结束后关闭。
+      }, 300);
+    }, 200);
+  }
+}, 350);
+</script>
+
+</body>
+</html>

@@ -50,7 +50,7 @@ async function fixture(t, input = {}) {
     } else if (req.url === "/docs") {
       res.writeHead(state.docsStatus);
       res.end(
-        `| Model | chat-free | \`https://opencode.ai/zen/v1/${state.chatProtocol ?? "chat/completions"}\` | sdk |`,
+        `| Model | chat-free | \`https://opencode.ai/inference/v1/${state.chatProtocol ?? "chat/completions"}\` | sdk |`,
       );
     } else if (state.reply) {
       res.writeHead(200, { "content-type": state.contentType ?? "text/event-stream" });
@@ -114,12 +114,14 @@ for (const { protocol, path, model } of protocols) {
           assert.doesNotMatch(text, /"name"\s*:\s*"(?:bash|read)"/);
         }
         const outbound = state.calls.at(-1).body.tools;
-        assert.deepEqual(outbound.slice(0, tools.length), tools);
-        for (const raw of outbound.slice(tools.length)) {
-          const tool = protocol === "chat" ? raw.function : raw;
-          assert.match(tool.description, /Not available\. Never call this tool\./);
-          assert.equal((tool.parameters ?? tool.input_schema).additionalProperties, false);
-          assert.deepEqual((tool.parameters ?? tool.input_schema).properties, {});
+        const sent = outbound.map((raw) => (protocol === "chat" ? raw.function : raw));
+        assert.deepEqual(sent.map((tool) => tool.name).sort(), ["bash", "glob", "grep", "read"]);
+        for (const tool of sent.filter((tool) => !["bash", "read"].includes(tool.name))) {
+          assert.match(tool.description, /This tool is currently unavailable and must not be used\./);
+          assert.deepEqual(Object.keys((tool.parameters ?? tool.input_schema).properties), ["input"]);
+        }
+        for (const tool of sent.filter((tool) => ["bash", "read"].includes(tool.name))) {
+          assert.deepEqual(Object.keys((tool.parameters ?? tool.input_schema).properties), ["command"]);
         }
         state.reply = toolReply(protocol, "edit", upstreamSSE);
         const error = await send();
@@ -136,7 +138,7 @@ test("keeps declared tools isolated between requests using the same loader", asy
   const { plugin, state, origin } = await fixture(t);
   await plugin.provider.models({ models: {} }, { auth: await publicAuth() });
   const loader = await plugin.auth.loader(publicAuth);
-  state.reply = toolReply("chat", "bash");
+  state.reply = toolReply("chat", "Bash");
   const send = (tools) =>
     loader.fetch(`${origin}/v1/chat/completions`, {
       method: "POST",
@@ -283,13 +285,14 @@ test("forces upstream streaming, preserves existing tools and returns the SSE bo
   assert.match(sent.headers["x-opencode-session"], /^ses_[0-9a-f]{12}[0-9A-Za-z]{14}$/);
   assert.equal(sent.headers["x-session-affinity"], sent.headers["x-opencode-session"]);
   assert.equal(sent.headers["x-session-id"], sent.headers["x-opencode-session"]);
+  assert.equal(sent.headers["x-opencode-session-id"], sent.headers["x-opencode-session"]);
   assert.ok(sent.headers["x-opencode-request"]);
   assert.equal(sent.body.stream, true);
   assert.equal(sent.body.stream_options.include_usage, true);
   assert.deepEqual(sent.body.tools[0], bash);
   assert.deepEqual(
-    sent.body.tools.map((tool) => tool.function.name),
-    ["bash", "edit", "glob", "grep", "read"],
+    sent.body.tools.map((tool) => tool.function.name).sort(),
+    ["bash", "glob", "grep", "read"],
   );
 });
 
@@ -379,5 +382,6 @@ test("chat headers are scoped to this provider and retain the conversation sessi
     out,
   );
   assert.equal(out.headers["x-session-id"], "s1");
+  assert.equal(out.headers["x-opencode-session-id"], "s1");
 });
 

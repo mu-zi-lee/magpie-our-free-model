@@ -29,9 +29,9 @@ const server = createServer(async (req, res) => {
       'messages-free': { name: 'Messages Free', provider: { npm: '@ai-sdk/anthropic' }, cost: { input: 0, output: 0 } },
     } } }));
   }
-  if (req.url === '/docs') return res.end('| Chat | chat-free | `https://opencode.ai/zen/v1/chat/completions` |\n| Responses | responses-free | `https://opencode.ai/zen/v1/responses` |\n| Messages | messages-free | `https://opencode.ai/zen/v1/messages` |');
+  if (req.url === '/docs') return res.end('| Chat | chat-free | `https://opencode.ai/inference/v1/chat/completions` |\n| Responses | responses-free | `https://opencode.ai/inference/v1/responses` |\n| Messages | messages-free | `https://opencode.ai/inference/v1/messages` |');
   if (req.url.endsWith('/models')) {
-    const data = req.url.startsWith('/zen/') ? ['chat-free', 'responses-free', 'messages-free'].map(id => ({ id }))
+    const data = req.url.startsWith('/inference/') ? ['chat-free', 'responses-free', 'messages-free'].map(id => ({ id }))
       : req.url.startsWith('/local/') ? [{ id: 'qoder/fixture', context_window: 64000 }] : [row];
     return res.end(JSON.stringify({ data }));
   }
@@ -80,7 +80,7 @@ try {
   await run(['plugin', 'add', compatibility]);
   await run(['plugin', 'options', compatibility, JSON.stringify({
     managed: false,
-    zen: { baseURL: `${origin}/zen/v1`, catalogURL: `${origin}/catalog`, docsURL: `${origin}/docs` },
+    zen: { baseURL: `${origin}/inference/v1`, catalogURL: `${origin}/catalog`, docsURL: `${origin}/docs` },
     kilo: { baseURL: `${origin}/kilo/v1` }, local: { baseURL: `${origin}/local/v1` },
   })]);
   for (const id of ['our-free-zen', 'our-free-kilo']) {
@@ -104,8 +104,8 @@ try {
     console.log(`${id}/${model}: ${result.out.trim()} ${result.err.trim()}`);
     assert.match(result.out + result.err, /✓/);
   }
-  assert.ok(calls.some(c => c.url === '/zen/v1/responses'));
-  assert.ok(calls.some(c => c.url === '/zen/v1/messages'));
+  assert.ok(calls.some(c => c.url === '/inference/v1/responses'));
+  assert.ok(calls.some(c => c.url === '/inference/v1/messages'));
   const kilo = calls.find(c => c.url === '/kilo/v1/chat/completions');
   assert.ok(kilo);
   assert.equal(kilo.auth, undefined);

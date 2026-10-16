@@ -27,7 +27,7 @@ test('uninstall removes every owned runtime, account file, temporary file and hi
   await registerInstallation(f.directory, old);
   for (const dir of [f.dataDir, old]) {
     for (const file of ['settings.json', 'stats.json', 'eac-user.json', 'gemini-oauth.json', 'loomy-wechat.json',
-      'channel-credentials.json', 'settings.json.123.tmp', 'channel-pack/state.json', 'temporary/tailscale-123/socket',
+      'channel-credentials.json', 'session-map.json', 'settings.json.123.tmp', 'channel-pack/state.json', 'temporary/tailscale-123/socket',
       '.magpie-ofm-owner.json.ofm.123.123456abcdef.tmp',
       'runtime/node-v24.21.0-linux-x64/bin/node', 'runtime/tailscale-1.102.4-amd64/tailscale',
       'runtime/eac-f8974369c5904858c696b520d8b9b82ad4425f78/src/vault.js', 'runtime/.node-install-AbC123/node.tar.gz', 'runtime/channels-f8974369c5904858c696b520d8b9b82ad4425f78/packages/standalone/channels/business.mjs', 'runtime/.channels-install-AbC123/business.mjs', 'runtime/cloudflared-2026.10.0-linux-x64/cloudflared', 'runtime/.cloudflared-install-AbC123/release.tgz', 'temporary/cloudflare-123/config.yaml']) await put(dir, file);

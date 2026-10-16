@@ -3,8 +3,8 @@
  *
  * Two sources, deliberately layered so no single one can break the plugin:
  *
- * 1. the upstream listing itself (`/zen/v1/models`) — the authoritative set of
- *    ids the gateway will currently name;
+ * 1. the upstream listing itself (`/inference/v1/models`) — the authoritative set
+ *    of ids the gateway will currently name;
  * 2. a vetted local capability table (context window / vision / reasoning),
  *    because the upstream listing discloses an id and nothing else.
  *

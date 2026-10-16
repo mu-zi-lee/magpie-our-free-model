@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "e9c4b70d913116284692d7b206a63f39ad6fe8cc",
+  "commit": "e937077fa92d8cc21d3108d5d1e1f32f37e2534e",
   "files": [
     {
       "path": "LICENSE",
@@ -10,7 +10,7 @@
     {
       "path": "package.json",
       "bytes": 2941,
-      "sha256": "65d2cf69f41f94f1cf8d2e25ee605941302dcbe39b01cd748dc13200aa22eabd"
+      "sha256": "cc652ab7e93ad5e109b69830e81d7e99f15ed64b99a065c12eabf8f9e5c5d31c"
     },
     {
       "path": "packages/standalone/README.md",
@@ -19,8 +19,8 @@
     },
     {
       "path": "packages/standalone/channels/business.mjs",
-      "bytes": 2881152,
-      "sha256": "9793bea5c4ce51fb93fbba2dfe3691588ac050ed4727646c99d11977d2a8b457"
+      "bytes": 2882152,
+      "sha256": "d7440ac8a45b0e0a408b753b8030314f477fd9d0ad28fe39f8bea7b1d866f20d"
     },
     {
       "path": "packages/standalone/channels/contracts.mjs",
@@ -49,8 +49,8 @@
     },
     {
       "path": "packages/standalone/cli.mjs",
-      "bytes": 2210,
-      "sha256": "3d385d10863c19707b72df72d59976af47479c5eb97e92e97d7dd265227ab9e4"
+      "bytes": 2252,
+      "sha256": "8bb35e9235ec4acfcc38d443f45e41d091fb166fe3aca250d3f4ebb208af8e70"
     },
     {
       "path": "packages/standalone/eac.mjs",
@@ -70,12 +70,12 @@
     {
       "path": "packages/standalone/package.json",
       "bytes": 917,
-      "sha256": "dc75891b74091aabcb3be13cee6f9e63244af545f5355d7382d8f5a87e308eae"
+      "sha256": "b793a7484a605f55b73173694908980903bff7269a58d0828ac7f67eacdccde6"
     },
     {
       "path": "packages/standalone/service.mjs",
-      "bytes": 7222,
-      "sha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3"
+      "bytes": 10634,
+      "sha256": "46a8a10e5731f1200927b4d1d98c10fbfdc3b8959a16442ed8f97714eb7bb2e9"
     },
     {
       "path": "packages/standalone/web/_ofm-provider-list-D9WP3xjp.js",
@@ -84,23 +84,23 @@
     },
     {
       "path": "packages/standalone/web/app.css",
-      "bytes": 387838,
-      "sha256": "c43f69d5bb378bf3323c0b40a6f24cceda89ff8dc3a12d5a36ecdc49395fef85"
+      "bytes": 409145,
+      "sha256": "518b1bbdc44667900ca60224a43e574112081be7ae1c497ed4b7c8e191887a0b"
     },
     {
       "path": "packages/standalone/web/app.js",
       "bytes": 262885,
-      "sha256": "6d4950ede49dab9b63b1bc2587577fb8aca7ddeb5a17c24a65c452b50ce6f336"
+      "sha256": "b5a49bfbeabaab29cf994f696679ca79f52c96a005796137d8f9d0c9c0581ed8"
     },
     {
       "path": "packages/standalone/web/assets.json",
       "bytes": 237,
-      "sha256": "1466afc9e17546e5c13404b5c3172b5e4b20b511c96781676d3d0a50c80a9227"
+      "sha256": "3a31d303958273b812aff1f9711bc6af00a3754aa06dc1fe17a1d0c21f0294d0"
     },
     {
-      "path": "packages/standalone/web/channels-CQJ5sFg_.js",
-      "bytes": 334577,
-      "sha256": "eb195c6ccec21df0ab09c74165b657e6f26df0746832dc02cd0cf600df31cc2f"
+      "path": "packages/standalone/web/channels-BNNYYkX2.js",
+      "bytes": 335061,
+      "sha256": "25082def577f052c21823784e98798cf38786ff6ecc1ad758a6f919a069b6c2c"
     },
     {
       "path": "packages/standalone/web/channels-DtR2ayCL.js",
@@ -131,6 +131,11 @@
       "path": "packages/standalone/web/settings-Cq1Y-v4k.js",
       "bytes": 6883,
       "sha256": "67a898b94db7e404cd92adca6a693279debb29238e220abb10adc8d6fca9e68a"
+    },
+    {
+      "path": "packages/standalone/web/splash.html",
+      "bytes": 8247,
+      "sha256": "59107f744bace56bd742b34a7a54889970c731e60f90236ce92e21106cc33b7d"
     },
     {
       "path": "packages/standalone/web/usage-SUrY-tWU.js",
@@ -164,8 +169,8 @@
     },
     {
       "path": "src/catalog.js",
-      "bytes": 19133,
-      "sha256": "7f20a8589b02b30770d3dfafd4301e4a998a4f5ad5c7bb394277bb1ce4d63c11"
+      "bytes": 19139,
+      "sha256": "9d9b64218a3e0bf65532868641aed84920c66cf717b07fdbea26a3dfa6e093c9"
     },
     {
       "path": "src/chan-relay.js",
@@ -189,8 +194,8 @@
     },
     {
       "path": "src/core/runtime.js",
-      "bytes": 15865,
-      "sha256": "163ee1de3d4d59ec48b044f8545cfab91d395db2135845603d2657c1ceed0ac0"
+      "bytes": 15871,
+      "sha256": "28107b971c11a592fa42d96761cd4ea023af87888ecfa2ec51d2ff0348443952"
     },
     {
       "path": "src/core/stats.js",
@@ -234,8 +239,8 @@
     },
     {
       "path": "src/http.js",
-      "bytes": 24912,
-      "sha256": "2afb523e410495c1af90105a1c2e9732a34fd306cf7b3829621836f48b866b83"
+      "bytes": 26905,
+      "sha256": "09eb03470553594f2d9a0588dee88709382b7d1241d9472101babe660356acb5"
     },
     {
       "path": "src/image-pricing.d.ts",
@@ -264,8 +269,8 @@
     },
     {
       "path": "src/probe.js",
-      "bytes": 9775,
-      "sha256": "b3a65d3c2be6d8e5e3c9b305a4df64cce699915dc8c6e44273809bef689b2642"
+      "bytes": 10298,
+      "sha256": "cac99bbacd9067500e2c0e56843bdb82b6ace150d62ab32c57baf5268860e46a"
     },
     {
       "path": "src/providers/index.js",
@@ -329,8 +334,8 @@
     },
     {
       "path": "src/token-saver/rtk/autodetect.js",
-      "bytes": 6695,
-      "sha256": "e88809de7adaa512b648181b73a68631d0d6bad1dfa80cfae92c3ecbb8961f88"
+      "bytes": 7041,
+      "sha256": "017650d4a88959552dfd6a01b8841fd5caeead462271ae355b7730fbfd5c9416"
     },
     {
       "path": "src/token-saver/rtk/constants.js",
@@ -369,8 +374,8 @@
     },
     {
       "path": "src/token-saver/rtk/filters/grep.js",
-      "bytes": 2446,
-      "sha256": "1cbd9ae989f5b66894ca49f80a04954ab173d7580aabd9cd60c362433dd5e0e5"
+      "bytes": 1845,
+      "sha256": "06abe489488e2c796696d4f1b42f91d19c2dfa6b50fadd82d9c8331e15f157b1"
     },
     {
       "path": "src/token-saver/rtk/filters/ls.js",
@@ -398,6 +403,11 @@
       "sha256": "283ce99b64971c5c83786e5f8d68f78bdbbc67372f80c27af92823b1edf09082"
     },
     {
+      "path": "src/token-saver/rtk/hitLine.js",
+      "bytes": 3188,
+      "sha256": "b87bfe38ea75451b94da3cf202c281245ec2650ae283fcff37cf8e3dfe58d64e"
+    },
+    {
       "path": "src/token-saver/rtk/index.js",
       "bytes": 16451,
       "sha256": "5aa05f8e6630bd0f941910e25759ac179b7caa53df5c7528ff5f8b5cb19a8c48"
@@ -419,8 +429,8 @@
     },
     {
       "path": "src/upstream.js",
-      "bytes": 10968,
-      "sha256": "3be44eb1b5a3aad20c27112d51b40ce7db13d426f849fed32c20c80b4b5a91eb"
+      "bytes": 15670,
+      "sha256": "256183c8312e1b4c0c1deb2756489dfd25f43d9f208847f3d753aef0e7d3c282"
     },
     {
       "path": "src/vault.js",
@@ -450,8 +460,8 @@
   "adaptations": [
     {
       "path": "packages/standalone/channels/business.mjs",
-      "originalSha256": "9793bea5c4ce51fb93fbba2dfe3691588ac050ed4727646c99d11977d2a8b457",
-      "sha256": "4fcda5575ce16ccededfd74d599dab6e579e3349c722f823dec58bc66e49fa8e",
+      "originalSha256": "d7440ac8a45b0e0a408b753b8030314f477fd9d0ad28fe39f8bea7b1d866f20d",
+      "sha256": "f40d8d888435c419b45f1108b6cb729100a1c8656d38c4c713f3f6c745a5f86e",
       "reason": "Distribution-only fallback omits upstream Google/WeChat defaults. Normal startup loads the verified original complete bundle unchanged; no custom local OAuth/App ID configuration is added."
     },
     {
@@ -462,8 +472,8 @@
     },
     {
       "path": "packages/standalone/service.mjs",
-      "originalSha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3",
-      "sha256": "6f456934e50328dcc5fde78f8dc9dcc9a09951d65dfc91fb10d1a9a165887a89",
+      "originalSha256": "46a8a10e5731f1200927b4d1d98c10fbfdc3b8959a16442ed8f97714eb7bb2e9",
+      "sha256": "285aec475dc2bb04044b2ac9b0566770cc1a14a56d0319003446dbb6d95e1818",
       "reason": "Accept an original EAC credential function and safe setup diagnostics; preserve server authorization and login flow. Select verified unchanged upstream channel business in the Worker."
     },
     {
@@ -473,9 +483,9 @@
       "reason": "Expose safe EAC installation diagnostics."
     },
     {
-      "path": "packages/standalone/web/channels-CQJ5sFg_.js",
-      "originalSha256": "eb195c6ccec21df0ab09c74165b657e6f26df0746832dc02cd0cf600df31cc2f",
-      "sha256": "2d398db2dca8c91c104ce99a62c9bbb65cd20d252901380c26e8869270381570",
+      "path": "packages/standalone/web/channels-BNNYYkX2.js",
+      "originalSha256": "25082def577f052c21823784e98798cf38786ff6ecc1ad758a6f919a069b6c2c",
+      "sha256": "455a612d429693112605e1dd4cb68098f71afb86b74a499023cdd7229e9c3ca4",
       "reason": "Display safe EAC installation diagnostics."
     },
     {
@@ -495,6 +505,24 @@
       "originalSha256": "75601bec5d900b6d042458cead016308da05245df711d0c1f6c2d94b8b39a966",
       "sha256": "0290d5f1b9cf0e9039c29663381f35ec1450dc1eb5a9d308b01eca2150ea5613",
       "reason": "Select verified unchanged upstream channel business in the Worker. Accept harness messages/tools from the native Anthropic gateway; retain model enablement and effort/budget normalization."
+    },
+    {
+      "path": "src/upstream.js",
+      "originalSha256": "256183c8312e1b4c0c1deb2756489dfd25f43d9f208847f3d753aef0e7d3c282",
+      "sha256": "9a875b43e797ed4bf166df721ebcd443402f5f2237dc17753b5ab7c8a8e5d685",
+      "reason": "Persist minted free-lane sessions in the standalone data directory."
+    },
+    {
+      "path": "packages/standalone/web/app.js",
+      "originalSha256": "b5a49bfbeabaab29cf994f696679ca79f52c96a005796137d8f9d0c9c0581ed8",
+      "sha256": "a2de132e1129928d4f28604f13cddd7848cf07971b4dfb0f8626dcdb7b8f8321",
+      "reason": "Expose a Magpie plugin-upgrade page independent of service settings."
+    },
+    {
+      "path": "packages/standalone/web/assets.json",
+      "originalSha256": "3a31d303958273b812aff1f9711bc6af00a3754aa06dc1fe17a1d0c21f0294d0",
+      "sha256": "359fba88a445dd744ada950e0c388f27b9b223eb7a56ec02a032f6e69b41c379",
+      "reason": "Expose a Magpie plugin-upgrade page independent of service settings."
     }
   ]
 }

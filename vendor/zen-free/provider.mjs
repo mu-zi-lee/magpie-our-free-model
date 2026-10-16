@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   PROVIDER,
   SDK,
@@ -9,9 +9,10 @@ import {
 } from "./models.mjs";
 import { collapseResponse } from "./stream.mjs";
 import { guardToolResponse } from "./tool-response.mjs";
+import { mintSessionId, SESSION_RE, applyFingerprint } from "../ofm/src/upstream.js";
 import { normalizeResponse } from "../../src/response.mjs";
 
-const DEFAULT_BASE = "https://opencode.ai/zen/v1";
+const DEFAULT_BASE = "https://opencode.ai/inference/v1";
 const CATALOG = "https://models.opencode.ai/api.json";
 const DOCS =
   "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zen.mdx";
@@ -56,34 +57,30 @@ function normalizeTools(body, protocol) {
   if (body.tools !== undefined && !Array.isArray(body.tools)) {
     throw new Error("tools must be an array");
   }
-  body.tools ??= [];
-  const present = new Set(
-    body.tools.map((tool) => (protocol === "chat" ? tool?.function?.name : tool?.name)),
-  );
-  const declared = new Set([...present].filter((name) => typeof name === "string"));
+  const declared = new Set();
+  for (const tool of body.tools ?? []) {
+    const name = protocol === "chat" ? tool?.function?.name : tool?.name;
+    if (typeof name === "string") declared.add(name);
+  }
   if (protocol === "chat" && Array.isArray(body.functions)) {
     for (const tool of body.functions) if (typeof tool?.name === "string") declared.add(tool.name);
   }
+  const map = applyFingerprint(body, protocol === "responses" ? true : protocol === "anthropic" ? "claude" : false);
   const injected = new Set();
-  for (const name of CORE_TOOLS) {
-    if (present.has(name)) continue;
-    injected.add(name);
-    const parameters = { type: "object", properties: {}, additionalProperties: false };
-    const definition = { name, description: "Not available. Never call this tool." };
-    body.tools.push(
-      protocol === "chat"
-        ? { type: "function", function: { ...definition, parameters } }
-        : protocol === "anthropic"
-          ? { ...definition, input_schema: parameters }
-          : { type: "function", ...definition, parameters },
-    );
+  const folded = new Map();
+  for (const [sent, original] of map) {
+    if (!declared.has(sent)) injected.add(sent);
+    if (sent !== original) folded.set(sent, original);
   }
-  return { declared, injected };
+  return { declared, injected, folded };
 }
+
+const sessions = new Map();
 
 function sessionID(headers, body) {
   let signal;
   for (const name of [
+    "x-opencode-session-id",
     "x-opencode-session",
     "x-session-affinity",
     "x-session-id",
@@ -102,17 +99,12 @@ function sessionID(headers, body) {
       : messages;
     signal = first ? JSON.stringify(first) : randomUUID();
   }
-  if (/^ses_[0-9a-f]{12}[0-9A-Za-z]{14}$/.test(signal)) return signal;
-  // Keep conversation affinity using OpenCode's canonical session format.
-  const hash = createHash("sha256").update(`ses\0${signal}`).digest("hex");
-  let value = BigInt(`0x${hash.slice(12, 32)}`);
-  let suffix = "";
-  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  for (let i = 0; i < 14; i++) {
-    suffix = alphabet[Number(value % 62n)] + suffix;
-    value /= 62n;
-  }
-  return `ses_${hash.slice(0, 12)}${suffix}`;
+  if (SESSION_RE.test(signal)) return signal;
+  const remembered = sessions.get(signal);
+  if (remembered) return remembered;
+  const minted = mintSessionId();
+  sessions.set(signal, minted);
+  return minted;
 }
 
 async function server(_input, options = {}) {
@@ -246,7 +238,7 @@ async function server(_input, options = {}) {
               );
             }
             const session = sessionID(headers, body);
-            for (const name of ["x-session-id", "x-opencode-session", "x-session-affinity"])
+            for (const name of ["x-session-id", "x-opencode-session", "x-opencode-session-id", "x-session-affinity"])
               headers.set(name, session);
             if (protocol === "anthropic") {
               headers.set("x-api-key", "public");
@@ -283,6 +275,7 @@ async function server(_input, options = {}) {
         return;
       output.headers["x-session-id"] = input.sessionID;
       output.headers["x-opencode-session"] = input.sessionID;
+      output.headers["x-opencode-session-id"] = input.sessionID;
       output.headers["x-session-affinity"] = input.sessionID;
     },
   };

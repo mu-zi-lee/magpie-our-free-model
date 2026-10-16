@@ -8,17 +8,48 @@ const SDK = '@ai-sdk/openai-compatible';
 const boolean = (value, defaultValue = false) => typeof value === 'boolean' ? value : defaultValue;
 let providerIcon;
 
+// Magpie only offers a model the levels it knows and drops every other
+// variant, so a menu named on/off or light/extra_high shows no thinking
+// control. Each native level maps to the nearest name Magpie offers; the
+// service still receives its own id, which is what the channel enforces.
+const EFFORT_RANK = { off: 0, none: 0, disabled: 0, minimal: 1, light: 2, low: 3,
+  medium: 4, balanced: 4, high: 5, on: 5, extra_high: 6, xhigh: 7, max: 8, deep: 8, ultra: 9 };
+const MAGPIE_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
+function nearestMagpieLevel(id) {
+  if (MAGPIE_LEVELS.includes(id)) return id;
+  const rank = EFFORT_RANK[id];
+  if (rank === undefined) return;
+  let best, bestDistance;
+  for (const level of MAGPIE_LEVELS) {
+    const levelRank = EFFORT_RANK[level];
+    if ((levelRank === 0) !== (rank === 0)) continue;
+    const distance = Math.abs(levelRank - rank);
+    if (bestDistance === undefined || distance < bestDistance || distance === bestDistance && levelRank > EFFORT_RANK[best]) {
+      best = level; bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+export function magpieEfforts(efforts) {
+  const variants = {};
+  for (const value of efforts) {
+    const id = typeof value === 'string' ? value : value?.id;
+    if (!safeID(id)) continue;
+    const level = nearestMagpieLevel(id);
+    if (level && !(level in variants)) variants[level] = level === 'none' ? {} : { reasoningEffort: id };
+  }
+  return variants;
+}
+
 export function managedModel(row, base) {
   if (!safeID(row?.id)) return;
   const id = row.id.trim();
   const inputs = row.input ?? row.modalities?.input ?? [];
   const rawEfforts = row.reasoning_efforts ?? row.reasoning?.efforts;
   const efforts = Array.isArray(rawEfforts) ? rawEfforts : [];
-  const variants = {};
-  for (const value of efforts) {
-    const effort = typeof value === 'string' ? value : value?.id;
-    if (safeID(effort)) variants[effort] = { reasoningEffort: effort };
-  }
+  const variants = magpieEfforts(efforts);
   return {
     id, providerID: PROVIDER, name: row.name ?? id,
     api: { id, url: base, npm: SDK },

@@ -8,7 +8,7 @@ import { createConsoleHandoff } from './managed-console.mjs';
 import { loadEacSource } from './eac-source.mjs';
 import { channelBusinessUrl } from './channel-source.mjs';
 import { createCloudflareConsole, remoteByDefault } from './cloudflare-console.mjs';
-
+const pluginVersion = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url))).version;
 let service;
 let stopping;
 let stopped = false;
@@ -49,8 +49,9 @@ lines.once('line', async line => {
     }
     service = await startStandalone({ dataDir: settings.dataDir, port: settings.port,
       channelBusiness, refresh: settings.refresh !== false, eacCredential: eacSource.credentialOf, eacSetup: eacSource.setup,
-      logger: { info() {}, warn() {}, error() {} } });
+      pluginVersion, logger: { info() {}, warn() {}, error() {} } });
     consoleHandoff = await createConsoleHandoff(service, settings.consolePort);
+    await service.ready;
     if (process.stdin.readableEnded) return stop();
     process.stdout.write(JSON.stringify({ type: 'ready', url: service.url,
       keyFile: service.keyFile, pid: process.pid }) + '\n');

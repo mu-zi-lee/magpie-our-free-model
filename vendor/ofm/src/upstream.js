@@ -8,10 +8,21 @@
  * per-session quota accounting (429 FreeUsageLimitError when a fresh session is
  * minted per request), and the regional gate (403 RegionError).
  *
+ * Re-verified 2026-10-14 after the lane moved: the free models now answer on
+ * `/inference/v1` (the old `/zen/v1` chat path answers 403 FreeTierError for
+ * every one of them), a request must send `x-opencode-session-id` next to
+ * `x-opencode-session`, the session id has to be minted rather than derived,
+ * the tool gate is `bash` + `read` declared with a non-empty parameter schema,
+ * and a User-Agent containing `deepseek-harness` is refused by name. Details and
+ * the measurements: docs/free-lane-wire.md.
+ *
  * @module src/upstream.js
  */
 
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { DATA_DIR_NAME, resolveDshHome } from './store.js'
 
 /**
  * Overridable so the selftest can point the adapter at a dead port and exercise
@@ -25,8 +36,17 @@ const MAX_SESSION_LENGTH = 256
 const MAX_TOOL_NAME_LEN = 128
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
-/** The lowercase tool quartet the free tier requires to be declared. */
+/**
+ * The lowercase tool names the free tier requires to be declared. The gate as
+ * measured on 2026-10-14 is `bash` **and** `read` present, each carrying a
+ * parameter schema with at least one declared property (names with an empty
+ * `properties: {}` are refused, as is either name on its own); `glob`/`grep` are
+ * kept because the real client declares all four and dropping them buys nothing.
+ */
 export const FINGERPRINT_TOOLS = ['bash', 'glob', 'grep', 'read']
+
+/** Property stamped into a fingerprint slot that would otherwise declare none. */
+const FINGERPRINT_PROPERTY = { type: 'string', description: 'This tool is currently unavailable and must not be used.' }
 
 /**
  * Quartet slots that a tool the caller already has can answer for, keyed by the
@@ -73,19 +93,71 @@ export function mintRequestId(timestamp = Date.now()) {
   return `msg_${hex}${base62From(crypto.randomBytes(14))}`
 }
 
+const SESSION_MAP_FILE = 'session-map.json'
+let sessions
+
+let sessionRoot
+export function setSessionStoreRoot(dir) {
+  if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw new TypeError('session store root must be an absolute path')
+  if (sessionRoot === dir) return
+  sessionRoot = dir
+  sessions = undefined
+}
+
+function sessionStorePath() {
+  try {
+    const root = sessionRoot
+      ?? (typeof process.env.OFM_HOME === 'string' && process.env.OFM_HOME.trim() !== '' ? process.env.OFM_HOME.trim() : undefined)
+    if (root) return path.join(path.resolve(root), SESSION_MAP_FILE)
+    return path.join(path.resolve(resolveDshHome(), DATA_DIR_NAME), SESSION_MAP_FILE)
+  } catch { return undefined }
+}
+
+function loadSessions() {
+  if (sessions !== undefined) return sessions
+  sessions = new Map()
+  try {
+    const file = sessionStorePath()
+    if (file === undefined) return sessions
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'))
+    for (const [seed, id] of Object.entries(parsed?.sessions ?? {})) {
+      if (typeof id === 'string' && SESSION_RE.test(id)) sessions.set(seed, id)
+    }
+  } catch { /* first run or unreadable store: start empty */ }
+  return sessions
+}
+
+function rememberSession(seed, id) {
+  loadSessions().set(seed, id)
+  try {
+    const file = sessionStorePath()
+    if (file === undefined) return
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    const temp = `${file}.tmp`
+    fs.writeFileSync(temp, JSON.stringify({ version: 1, at: Date.now(), sessions: Object.fromEntries(sessions) }, undefined, 2))
+    fs.renameSync(temp, file)
+  } catch { /* non-fatal: the id still works, it just will not survive a restart */ }
+}
+
 /**
  * Map one downstream conversation onto one stable upstream session.
  *
  * Free-tier quota is accounted per session, so a fresh id per request exhausts
- * it and surfaces as 429 with growing retry-after. A digest of the harness
- * session id gives the same conversation the same canonical session across
- * restarts, which is how the real client behaves.
+ * it and surfaces as 429 with growing retry-after. The gateway also checks the
+ * id's *shape*: the twelve hex digits must be the time encoding that
+ * `mintSessionId()` produces. A sha256 digest, or any other random hex, is
+ * refused with 403 FreeTierError even when every other header is right
+ * (measured 2026-10-14). Mint once per conversation and cache it, which keeps
+ * both properties: one stable session per conversation, and the canonical shape.
  */
 export function sessionForConversation(sessionId) {
   if (typeof sessionId === 'string' && SESSION_RE.test(sessionId.trim())) return sessionId.trim()
   const seed = typeof sessionId === 'string' && sessionId.trim() ? sessionId.trim() : 'global'
-  const digest = crypto.createHash('sha256').update(`our-free-model\0${seed}`).digest()
-  return `ses_${digest.subarray(0, 6).toString('hex')}${base62From(digest.subarray(6, 20))}`
+  const remembered = loadSessions().get(seed)
+  if (remembered !== undefined) return remembered
+  const minted = mintSessionId()
+  rememberSession(seed, minted)
+  return minted
 }
 
 /** Stable per-turn request id: retries of the same turn share it. */
@@ -115,33 +187,43 @@ export function isMessagesModel(modelId) {
   return MESSAGES_MODELS.has(baseModelId(modelId))
 }
 
-/** Which upstream path serves this model. */
+/**
+ * Which upstream path serves this model. The free lane lives under
+ * `/inference/v1` (measured 2026-10-14, and the shape the console's model table
+ * documents); `/zen/v1` chat completions answer 403 FreeTierError for free ids.
+ */
 export function endpointFor(modelId) {
-  if (isResponsesModel(modelId)) return '/zen/v1/responses'
-  if (isMessagesModel(modelId)) return '/zen/v1/messages'
-  return '/zen/v1/chat/completions'
+  if (isResponsesModel(modelId)) return '/inference/v1/responses'
+  if (isMessagesModel(modelId)) return '/inference/v1/messages'
+  return '/inference/v1/chat/completions'
 }
 
 /** The wire shape one endpoint speaks; drives request encoding and response parsing. */
 export function wireFor(modelId) {
   const path = endpointFor(modelId)
-  if (path === '/zen/v1/responses') return 'responses'
-  if (path === '/zen/v1/messages') return 'messages'
+  if (path === '/inference/v1/responses') return 'responses'
+  if (path === '/inference/v1/messages') return 'messages'
   return 'chat'
 }
 
 /**
- * The headers the gateway fingerprints a genuine desktop client by.
+ * The headers the gateway fingerprints a genuine client by.
  * `Authorization: Bearer public` is the pooled免密 credential — there is no
  * per-user secret on this lane.
+ *
+ * `x-opencode-session-id` carries the same value as `x-opencode-session`; the
+ * gateway refuses a request that omits it (403 FreeTierError, measured
+ * 2026-10-14) even when every other header matches. `x-opencode-client` is
+ * reported as `cli` because that is what the real client sends.
  */
 export function gatewayHeaders({ session, requestId, stream, accept }) {
   const headers = {
     'content-type': 'application/json',
     'authorization': 'Bearer public',
     'user-agent': CLIENT_UA,
-    'x-opencode-client': 'desktop',
+    'x-opencode-client': 'cli',
     'x-opencode-session': session,
+    'x-opencode-session-id': session,
     'x-opencode-request': requestId,
     'x-opencode-project': 'global',
     'accept': accept ?? (stream ? 'text/event-stream' : '*/*'),
@@ -168,17 +250,41 @@ function functionOf(tool) {
 }
 
 /**
+ * Give a declared fingerprint slot a non-empty parameter schema.
+ *
+ * The gate refuses `bash`/`read` that carry `properties: {}` (measured
+ * 2026-10-14), so a slot declared with an empty schema — a decoy, or a caller
+ * tool that means something else by the name — gets one harmless placeholder
+ * property. Only the entry's schema is touched; its name and description stay as
+ * the caller wrote them.
+ */
+function withDeclaredProperty(tool, { claude, flat }) {
+  const wrapper = claude || flat ? tool : functionOf(tool)
+  if (wrapper === null || wrapper === undefined) return tool
+  const key = claude ? 'input_schema' : 'parameters'
+  const schema = wrapper[key]
+  const properties = schema !== null && typeof schema === 'object' ? schema.properties : undefined
+  if (properties !== null && typeof properties === 'object' && Object.keys(properties).length > 0) return tool
+  const next = { ...(schema ?? {}), type: 'object', properties: { input: FINGERPRINT_PROPERTY } }
+  if (wrapper === tool) return { ...tool, [key]: next }
+  return { ...tool, function: { ...wrapper, [key]: next } }
+}
+
+/**
  * Satisfy the free-tier fingerprint gate on `body.tools`.
  *
- * The gate demands all four lowercase quartet names be declared. dsh's own
- * shell/filesystem tools already answer to `bash`/`glob`/`grep`/`read` on the
- * lane that names its shell `bash`, so a normal agent turn declares them for
- * real; a slot the caller does not field is filled by promoting a tool that can
- * genuinely answer for it (see {@link QUARTET_DONORS}) before it is faked, and
- * only a slot with nothing to promote gets a self-disabling decoy. Case variants
- * are canonicalised rather than duplicated (upstream rejects `Bash` + `bash` as a
- * duplicate), and the rename map lets the response side restore the caller's
- * spelling — which is what makes a promoted tool callable.
+ * The gate demands `bash` and `read` be declared, each with a parameter schema
+ * that declares at least one property; the other two quartet names are kept
+ * because the real client sends all four. dsh's own shell/filesystem tools
+ * already answer to `bash`/`glob`/`grep`/`read` on the lane that names its shell
+ * `bash`, so a normal agent turn declares them for real; a slot the caller does
+ * not field is filled by promoting a tool that can genuinely answer for it (see
+ * {@link QUARTET_DONORS}) before it is faked, and only a slot with nothing to
+ * promote gets a self-disabling decoy. Case variants are canonicalised rather
+ * than duplicated (upstream rejects `Bash` + `bash` as a duplicate), the rename
+ * map lets the response side restore the caller's spelling — which is what makes
+ * a promoted tool callable — and any slot left with an empty schema is stamped
+ * with one placeholder property so the gate does not read it as undeclared.
  *
  * @param {object} body - request body, mutated in place
  * @param {boolean|'claude'} style - true 为 Responses，false 为 Chat，claude 为 Messages
@@ -235,14 +341,18 @@ export function applyFingerprint(body, style) {
 
   for (const name of FINGERPRINT_TOOLS) {
     if (seen.has(name)) continue
+    const properties = { input: FINGERPRINT_PROPERTY }
     out.push(claude
-      ? { name, description: 'This tool is currently unavailable and must not be used.', input_schema: { type: 'object', properties: {} } }
+      ? { name, description: 'This tool is currently unavailable and must not be used.', input_schema: { type: 'object', properties } }
       : flat
-        ? { type: 'function', name, description: 'This tool is currently unavailable and must not be used.', parameters: { type: 'object', properties: {} } }
-        : { type: 'function', function: { name, description: 'This tool is currently unavailable and must not be used.', parameters: { type: 'object', properties: {} } } })
+        ? { type: 'function', name, description: 'This tool is currently unavailable and must not be used.', parameters: { type: 'object', properties } }
+        : { type: 'function', function: { name, description: 'This tool is currently unavailable and must not be used.', parameters: { type: 'object', properties } } })
   }
 
-  body.tools = out
+  body.tools = out.map(tool => {
+    const name = toolNameOf(tool)
+    return name === 'bash' || name === 'read' ? withDeclaredProperty(tool, { claude, flat }) : tool
+  })
   if (!body.tool_choice) {
     if (flat) body.tool_choice = 'auto'
     else if (!hadClientTools) body.tool_choice = claude ? { type: 'none' } : 'none'

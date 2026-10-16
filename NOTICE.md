@@ -5,13 +5,13 @@
 The full account-channel integration, standalone model runtime, EAC authorization,
 statistics and local management UI are from **Ebony-Vinyl/dsh-our-free-model**:
 https://github.com/Ebony-Vinyl/dsh-our-free-model
-Pinned commit: e9c4b70d913116284692d7b206a63f39ad6fe8cc (2026-10-11).
-88 upstream runtime/asset/license paths are retained under vendor/ofm; 80 are
+Pinned commit: e937077fa92d8cc21d3108d5d1e1f32f37e2534e (2026-10-16).
+90 upstream runtime/asset/license paths are retained under vendor/ofm; 79 are
 byte-for-byte copies. UPSTREAM.json records original and adapted hashes and the
-two omitted encrypted EAC data files. Eight adapted paths are documented: removing
-bundled Google OAuth defaults and the Loomy WeChat App ID, replacing vault.js with an empty stub, and adding
-an original EAC credential function to the standalone service, plus safe setup diagnostics in the EAC backend and both channel UI bundles, and selecting a verified original channel bundle through the service/Worker. The Worker also accepts harness messages/tools from the upstream native Anthropic gateway while retaining model enablement and reasoning/output-budget normalization.
-The generator patches are scripts/ofm-google-config-patch.mjs, scripts/ofm-eac-setup-patch.mjs and scripts/ofm-channel-source-patch.mjs. These adaptations
+two omitted encrypted EAC data files. Eleven adapted paths are documented: removing
+bundled Google OAuth defaults and the Loomy WeChat App ID, replacing vault.js with an empty stub,
+adding an original EAC credential function to the standalone service, plus safe setup diagnostics in the EAC backend and both channel UI bundles, selecting a verified original channel bundle through the service/Worker, rewriting the standalone User-Agent token the anonymous lane refuses, persisting minted free-lane sessions in the plugin data directory, and adding an independent plugin-upgrade page to the management console. The Worker also accepts harness messages/tools from the upstream native Anthropic gateway while retaining model enablement and reasoning/output-budget normalization.
+The generator patches are scripts/ofm-google-config-patch.mjs, scripts/ofm-eac-setup-patch.mjs, scripts/ofm-channel-source-patch.mjs, scripts/ofm-session-store-patch.mjs and scripts/ofm-console-upgrade-patch.mjs. These adaptations
 avoid publishing credential material and comply with repository secret scanning.
 Normal startup downloads the complete original channel bundle, contracts, Qoder WASM and licenses from the official pinned source, verifies all file sizes and SHA-256 digests and loads it unchanged from a private runtime cache. Native Gemini OAuth defaults and Loomy WeChat configuration are used directly from that bundle; no extra local OAuth/App ID files or Loomy environment overrides are read. The public distribution-only fallback omits these defaults. Downloaded channel source is removed on uninstall. The remote gateway relays the native Loomy login listener and permits a session-bound Gemini callback return while retaining the registered localhost redirect URI. EAC installs the pinned original source in a private runtime cache by default; an explicitly selected local source overrides it. Server authorization/login/signature flow remains unchanged. No original vault decryption code, ciphertext or shards are distributed.
 The integration uses the upstream's published standalone entry point.

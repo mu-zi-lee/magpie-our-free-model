@@ -41,6 +41,11 @@ test('upstream runtime hashes match the declared snapshot and Google configurati
     if (/\/web\/channels-[^/]+\.js$/.test(file.path)) {
       assert.match(bytes.toString('utf8'), /t\.setup\?\.message\?\?a\("eac\.noLane"\)/, file.path);
     }
+    if (file.path.endsWith('/web/app.js')) {
+      assert.match(bytes.toString('utf8'), /id:"upgrade",name:"插件升级"/);
+      assert.match(bytes.toString('utf8'), /name:"upgrade",snapshot:y,host:ot/);
+      assert.doesNotMatch(bytes.toString('utf8'), /y&&g==="settings"&&o.jsx\(Hs,\{name:"settings",snapshot:y,host:ot\}\)},g\)/);
+    }
   }
   const business = fs.readFileSync(path.join(dir, 'packages/standalone/channels/business.mjs'), 'utf8');
   for (const name of ['vault-data.js', 'vault-anchor.js']) assert.equal(fs.existsSync(path.join(dir, 'src', name)), false);
@@ -53,7 +58,7 @@ test('upstream runtime hashes match the declared snapshot and Google configurati
   assert.doesNotMatch(business, /OFM_LOOMY_WECHAT_APP_ID/);
 });
 
-test('managed metadata preserves native effort ids and declared image/context capabilities', () => {
+test('managed metadata speaks Magpie effort levels, mapping the free ladder onto them', () => {
   const model = managedModel({ id: 'buddy/test', context_window: 128000, max_tokens: 8192,
     input: ['text', 'image'], reasoning: { efforts: [{ id: 'low' }, { id: 'high' }] } }, 'http://127.0.0.1/v1');
   assert.equal(model.limit.context, 128000);
@@ -61,6 +66,20 @@ test('managed metadata preserves native effort ids and declared image/context ca
   assert.equal(model.capabilities.input.image, true);
   assert.equal(model.capabilities.reasoning, true);
   assert.deepEqual(model.variants.high, { reasoningEffort: 'high' });
+  const free = managedModel({ id: 'mimo-v2.6-flash-free', reasoning: true,
+    reasoning_efforts: [{ id: 'light' }, { id: 'balanced' }, { id: 'deep' }] }, 'http://127.0.0.1/v1');
+  assert.deepEqual(free.variants, {
+    low: { reasoningEffort: 'light' }, medium: { reasoningEffort: 'balanced' }, max: { reasoningEffort: 'deep' },
+  });
+  const native = managedModel({ id: 'trae/test', reasoning: true,
+    reasoning_efforts: [{ id: 'off' }, { id: 'on' }, { id: 'extra_high' }] }, 'http://127.0.0.1/v1');
+  assert.deepEqual(native.variants, {
+    none: {}, high: { reasoningEffort: 'on' }, xhigh: { reasoningEffort: 'extra_high' },
+  });
+  const off = managedModel({ id: 'eac/deepseek', reasoning: true,
+    reasoning_efforts: ['disabled', 'low', 'high', 'max'] }, 'http://127.0.0.1/v1');
+  assert.deepEqual(Object.keys(off.variants), ['none', 'low', 'high', 'max']);
+  assert.deepEqual(off.variants.none, {});
   const plain = managedModel({ id: 'unknown' }, 'http://127.0.0.1/v1');
   assert.equal(plain.capabilities.input.image, false);
   assert.deepEqual(plain.variants, {});
@@ -239,10 +258,12 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   let models;
   const provider = { models: {} };
   await t.test('model sync uses real core and channel capabilities, not defaults', async () => {
-    models = await until(async () => { const rows = await plugin.provider.models(provider, { auth }); return rows['buddy/fixture-free'] && rows['mimo-v2.6-flash-free'] ? rows : undefined; });
+    models = await plugin.provider.models(provider, { auth });
+    assert.ok(models['buddy/fixture-free'], 'channel catalog must be ready before the service reports ready');
+    assert.ok(models['mimo-v2.6-flash-free']);
     assert.equal(models['buddy/fixture-free'].capabilities.input.image, true);
     assert.equal(models['buddy/fixture-free'].limit.context, 128000);
-    assert.deepEqual(Object.keys(models['mimo-v2.6-flash-free'].variants), ['light', 'balanced', 'deep']);
+    assert.deepEqual(Object.keys(models['mimo-v2.6-flash-free'].variants), ['low', 'medium', 'max']);
     assert.equal(models['mimo-v2.6-flash-free'].capabilities.input.image, true);
   });
   const loader = await plugin.auth.loader(async () => auth);

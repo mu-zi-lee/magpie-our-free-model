@@ -1,7 +1,15 @@
 // Select a verified upstream bundle without modifying its channel/login logic.
 export function patchChannelSource(file, source) {
   const pairs = file.endsWith('/service.mjs') ? [
-    ['probe, eacCredential, eacSetup,', 'probe, eacCredential, eacSetup, channelBusiness,'],
+    ['probe, eacCredential, eacSetup,', 'probe, eacCredential, eacSetup, channelBusiness, pluginVersion,'],
+    ["import { createChannelRuntime } from './channels/runtime.mjs'\n",
+      "import { createChannelRuntime } from './channels/runtime.mjs'\nimport { setSessionStoreRoot } from '../../src/upstream.js'\n"],
+    ['  fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 })\n  const releaseLock = await acquireServiceLock(dataDir)',
+      '  fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 })\n  setSessionStoreRoot(dataDir)\n  const releaseLock = await acquireServiceLock(dataDir)'],
+    ['      ...stores, logger, attributionUserAgent: `${PRODUCT}/${VERSION}`,',
+      '      ...stores, logger, attributionUserAgent: `ofm-standalone/${VERSION}`,'],
+    ['      info: () => ({\n        product: PRODUCT, version: VERSION, dataDir,',
+      '      info: () => ({\n        product: PRODUCT, version: VERSION, pluginVersion, dataDir,'],
     ['createChannelRuntime({ dataDir, logger, stats: stores.stats })', 'createChannelRuntime({ dataDir, logger, stats: stores.stats, businessPath: channelBusiness })'],
   ] : file.endsWith('/runtime.mjs') ? [
     ['createChannelRuntime({ dataDir, logger = console, stats })', 'createChannelRuntime({ dataDir, logger = console, stats, businessPath })'],

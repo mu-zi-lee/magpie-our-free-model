@@ -153,6 +153,13 @@ function stateOf(error) {
   switch (error?.code) {
     case CODE.region: return STATE.regionBlocked
     case CODE.quota: return STATE.throttled
+    // The free lane's client gate (issue #310) refuses the lane, not the model
+    // — but unlike a 5xx it does not clear on its own, so a model that can
+    // only fail reads with the same verdict the picker already treats as "the
+    // gateway will not route this". The whole-round guard in `computeMembership`
+    // still keeps every model visible when the lock takes the entire lane, and
+    // the settings page carries the upstream's own words as the reason.
+    case CODE.laneLocked: return STATE.unavailable
     default: break
   }
   const message = String(error?.message ?? '')

@@ -3,13 +3,13 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
-export const EAC_COMMIT = 'e9c4b70d913116284692d7b206a63f39ad6fe8cc';
+export const EAC_COMMIT = 'e937077fa92d8cc21d3108d5d1e1f32f37e2534e';
 // Original standalone entry point and its dependencies, unchanged. The shared
 // gateway material stays in the user's private runtime cache, outside the package.
 export const EAC_FILES = Object.freeze([
   { path: 'src/vault.js', sha256: '6f9d5dce4af5dc504991af32b46cd3b76dd0c587fcacb35cc6245a518201c021' },
-  { path: 'src/vault-data.js', sha256: '4db83a43440a0bddb27e5dd0ef9ecd911ed24d96b7e29f9f940ee20a55cd1147' },
-  { path: 'src/vault-anchor.js', sha256: '28a156e0da6853e9b72b840637f79ea1a8e005bf7e432878a98ee8cb3eefe897' },
+  { path: 'src/vault-data.js', sha256: 'c5d33a4607a8834615da00c32daa81899bb73f6096bc0a2b0b74f45ba4232f57' },
+  { path: 'src/vault-anchor.js', sha256: '0ac4dfb79cc037af8a0c568eaa067bfac0402ac84030cb3ad709a7feaafae7f6' },
   { path: 'LICENSE', sha256: '4d5f97c83545b2159926df06d3210a266d2b7f900e27f7b3e8e576caf753e828' },
 ].map(Object.freeze));
 const PACKAGE = '{"private":true,"type":"module"}\n';
