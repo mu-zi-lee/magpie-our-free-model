@@ -34,6 +34,24 @@ Deferred:
 - DSH host updater/hot reload, announcements, Agent continuation and LAN relay
   remain outside this plugin's supported integration.
 
+## Temporary adaptations
+
+- **WorkBuddy INTL conversation gates** (issue #6, upstream
+  `Ebony-Vinyl/dsh-our-free-model#377`). `src/workbuddy-conversation-patch.mjs`
+  adds the three `X-Conversation-*` headers and a leading system message that
+  `www.workbuddy.ai` requires together, without which every `workbuddy/*`
+  request fails with HTTP 400 before the model is reached.
+  - Normal startup: applied to the verified download as a sibling
+    `business.workbuddy-gated.mjs` in `channelBusinessUrl`, so the pristine
+    `CHANNEL_FILES` SHA-256 pin still attests the upstream bytes. Rewriting that
+    pin instead would fail integrity on every fresh install.
+  - Offline mode (`autoInstallChannels: false`): applied to the vendored bundle
+    by the `scripts/vendor-ofm.mjs` patch table, so `--replace` regenerates it.
+  - **Removal condition:** once the reviewed pin passes the merge of upstream
+    PR #377, the bundle already carries both gates, the transform becomes a
+    no-op and the sibling is never written. Delete the table entry, the module
+    and its tests at that point.
+
 ## Recurring Review
 
 A Codex app automation attached to the maintenance chat runs every 72 hours.

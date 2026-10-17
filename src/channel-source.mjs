@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { applyWorkbuddyConversationPatch, workbuddyConversationPatched } from './workbuddy-conversation-patch.mjs';
 
 export const CHANNEL_COMMIT = 'e9c4b70d913116284692d7b206a63f39ad6fe8cc';
 // Load the complete upstream channel bundle unchanged, including native login
@@ -118,12 +119,58 @@ export async function installChannelSource(dataDir, dependencies = {}) {
   return promise;
 }
 
+// The verified cache keeps `business.mjs` byte-for-byte pristine so the
+// download SHA-256 pin in CHANNEL_FILES still proves what was fetched from the
+// pinned upstream commit. When that bundle predates the WorkBuddy INTL
+// conversation-gate fix (upstream PR #377), the runtime loads a patched sibling
+// written into the SAME directory, so the bundle's `import.meta.url`-relative
+// lookups (notably qoder-auth-wasm.wasm) resolve exactly as they do for the
+// pristine file. Once the pin moves past the merge, the bundle already carries
+// the fix and the pristine path is used unchanged — no coordinated revert here.
+//
+// A bundle whose anchors no longer match falls back to the pristine file rather
+// than throwing: one lane's optional repair must not take down the other twelve.
+// WorkBuddy then stays exactly as broken as before this patch. The warning goes
+// to stderr because the managed runner's stdout carries the JSON ready protocol;
+// `dependencies.logger` lets callers and tests capture it.
+const GATED_BASENAME = 'business.workbuddy-gated.mjs';
+
+async function gatedBusinessPath(directory, logger) {
+  const channelsDir = path.join(directory, 'packages', 'standalone', 'channels');
+  const pristine = path.join(channelsDir, 'business.mjs');
+  const warn = message => (logger?.warn ? logger.warn(message) : process.stderr.write(`[magpie-our-free-model] ${message}\n`));
+  let patched;
+  try {
+    const source = await fs.readFile(pristine, 'utf8');
+    if (workbuddyConversationPatched(source)) return pristine;
+    patched = applyWorkbuddyConversationPatch(source);
+  } catch (error) {
+    warn(`WorkBuddy 会话头补丁未应用，渠道包按原样加载：${error?.message ?? error}`);
+    return pristine;
+  }
+  await regularParents(channelsDir, path.resolve(directory));
+  const target = path.join(channelsDir, GATED_BASENAME);
+  const bytes = Buffer.from(patched, 'utf8');
+  let current;
+  try { current = await fs.readFile(target); } catch { current = undefined; }
+  if (current === undefined || !current.equals(bytes)) {
+    const stage = `${target}.${process.pid}.tmp`;
+    try { await fs.writeFile(stage, bytes, { flag: 'wx', mode: 0o600 }); await fs.rename(stage, target); }
+    catch (error) {
+      await fs.rm(stage, { force: true }).catch(() => {});
+      logger?.warn?.(`WorkBuddy 会话头补丁写入失败，渠道包按原样加载：${error?.message ?? error}`);
+      return pristine;
+    }
+  }
+  return target;
+}
+
 export async function channelBusinessUrl(settings, dependencies = {}) {
   // Explicit offline/test mode uses the packaged bundle without login defaults.
   if (settings.autoInstallChannels === false) return undefined;
   try {
     const directory = await installChannelSource(settings.dataDir, dependencies);
-    return pathToFileURL(path.join(directory, 'packages/standalone/channels/business.mjs')).href;
+    return pathToFileURL(await gatedBusinessPath(directory, dependencies.logger)).href;
   } catch (error) {
     throw new Error(trustedFailures.has(error) ? error.message : '原渠道包安装失败；请检查数据目录权限与网络，然后重启 Magpie。');
   }

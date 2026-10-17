@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { removeEmbeddedOAuthDefaults, externalizeEacCredentials } from './ofm-google-config-patch.mjs';
 import { patchChannelSource } from './ofm-channel-source-patch.mjs';
 import { patchEacDiagnostics, patchEacSetupUi } from './ofm-eac-setup-patch.mjs';
+import { applyWorkbuddyConversationPatch } from '../src/workbuddy-conversation-patch.mjs';
 
 const pin = 'e9c4b70d913116284692d7b206a63f39ad6fe8cc';
 const root = path.resolve(process.argv[2] || '');
@@ -48,6 +49,11 @@ const channelPages = manifest.filter(row => /^packages\/standalone\/web\/channel
 if (!channelPages.length) throw new Error('Upstream channel UI bundle missing');
 for (const [file, patch, reason] of [
   ['packages/standalone/eac.mjs', patchEacDiagnostics, 'Expose safe EAC installation diagnostics.'],
+  // The offline fallback bundle (autoInstallChannels: false) is the only lane
+  // this reaches, so the WorkBuddy INTL conversation-gate repair is applied
+  // here as well; normal startup patches the verified download at load time.
+  ['packages/standalone/channels/business.mjs', applyWorkbuddyConversationPatch,
+    'Satisfy the WorkBuddy INTL gateway conversation gates (X-Conversation-* headers and a leading system message) until the pin passes upstream PR #377.'],
   ...channelPages.map(row => [row.path, patchEacSetupUi, 'Display safe EAC installation diagnostics.']),
   ...['packages/standalone/service.mjs', 'packages/standalone/channels/runtime.mjs', 'packages/standalone/channels/worker.mjs']
     .map(file => [file, source => patchChannelSource(file, source), 'Select verified unchanged upstream channel business in the Worker.'
