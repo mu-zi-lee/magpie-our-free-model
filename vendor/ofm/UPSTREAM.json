@@ -451,8 +451,8 @@
     {
       "path": "packages/standalone/channels/business.mjs",
       "originalSha256": "9793bea5c4ce51fb93fbba2dfe3691588ac050ed4727646c99d11977d2a8b457",
-      "sha256": "4fcda5575ce16ccededfd74d599dab6e579e3349c722f823dec58bc66e49fa8e",
-      "reason": "Distribution-only fallback omits upstream Google/WeChat defaults. Normal startup loads the verified original complete bundle unchanged; no custom local OAuth/App ID configuration is added."
+      "sha256": "221734cce3b9574a5c36e712dd3811adb1d1a0df16e64eb1e2908a85703946f4",
+      "reason": "Distribution-only fallback omits upstream Google/WeChat defaults. Normal startup loads the verified original complete bundle unchanged; no custom local OAuth/App ID configuration is added. Satisfy the WorkBuddy INTL gateway conversation gates (X-Conversation-* headers and a leading system message) until the pin passes upstream PR #377."
     },
     {
       "path": "src/vault.js",

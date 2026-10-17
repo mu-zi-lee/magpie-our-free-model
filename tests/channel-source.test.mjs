@@ -17,7 +17,7 @@ async function fixture(t) {
       requests.push({ url, options });
       const file = CHANNEL_FILES.find(file => url === `https://raw.githubusercontent.com/Ebony-Vinyl/dsh-our-free-model/${CHANNEL_COMMIT}/${file.path}`);
       return new Response(contents[file.path]);
-    } };
+    }, logger: { warn() {} } };
   return { dataDir, contents, dependencies, requests };
 }
 
@@ -37,6 +37,52 @@ test('original channel bundle: pinned origin, unchanged complete files, private 
   const url = await channelBusinessUrl({ dataDir: f.dataDir }, { ...f.dependencies, fetch() { throw new Error('offline'); } });
   assert.ok(url.endsWith('/packages/standalone/channels/business.mjs'));
 });
+
+// The WorkBuddy INTL conversation-gate repair (issue #6 / upstream PR #377) is
+// applied as a patched sibling so the download SHA-256 pin in CHANNEL_FILES
+// keeps proving the pristine upstream bytes — the report's proposed approach of
+// rewriting that hash would fail integrity on every fresh install.
+const GATED_BUSINESS = `async send() {
+    headers.set("User-Agent", resolveUserAgent(this.product, options.model));
+    try {
+    }
+  }
+  async prepareCall() {
+    const messages = serializeMessages2(options.messages, imageUrls);
+    if (options.system !== void 0 && options.system.length > 0) {
+      messages.unshift({ role: "system", content: options.system });
+    }
+  }`;
+
+test('anchor-bearing bundle: runtime loads a patched sibling and the pristine pin stays intact', async t => {
+  const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ofm-channels-gated-'));
+  t.after(() => fs.rm(dataDir, { recursive: true, force: true }));
+  const businessPath = 'packages/standalone/channels/business.mjs';
+  const pristine = Buffer.from(GATED_BUSINESS);
+  const contents = Object.fromEntries(CHANNEL_FILES.map(file => [file.path,
+    file.path === businessPath ? pristine : Buffer.from(`fixture ${file.path}`)]));
+  const dependencies = {
+    files: CHANNEL_FILES.map(file => ({ ...file, bytes: contents[file.path].length,
+      sha256: crypto.createHash('sha256').update(contents[file.path]).digest('hex') })),
+    async fetch(url) {
+      const file = CHANNEL_FILES.find(file => url === `https://raw.githubusercontent.com/Ebony-Vinyl/dsh-our-free-model/${CHANNEL_COMMIT}/${file.path}`);
+      return new Response(contents[file.path]);
+    },
+  };
+  const url = await channelBusinessUrl({ dataDir }, dependencies);
+  assert.ok(url.endsWith('/packages/standalone/channels/business.workbuddy-gated.mjs'), `expected gated sibling, got ${url}`);
+  const directory = path.join(dataDir, 'runtime', `channels-${CHANNEL_COMMIT}`);
+  // The loaded sibling carries both gates.
+  const gated = await fs.readFile(path.join(directory, 'packages/standalone/channels/business.workbuddy-gated.mjs'), 'utf8');
+  assert.match(gated, /X-Conversation-ID/);
+  assert.match(gated, /You are a helpful assistant\./);
+  // The pinned pristine file is byte-for-byte the downloaded upstream bundle.
+  assert.deepEqual(await fs.readFile(path.join(directory, businessPath)), pristine);
+  // Re-invocation reuses the sibling without re-downloading or rewriting it.
+  const again = await channelBusinessUrl({ dataDir }, { ...dependencies, fetch() { throw new Error('must reuse cache'); } });
+  assert.equal(again, url);
+});
+
 
 test('channel cache corruption is repaired; wrong size/hash never produces a loadable module', async t => {
   const f = await fixture(t);
