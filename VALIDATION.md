@@ -1,4 +1,24 @@
-# Validation — 0.9.0
+# Validation — 0.9.1
+
+## Upstream standalone/core/channel refresh - 2026-10-14
+
+- Reviewed upstream 2.2.0 changes through `9e6121802ab5b87e379a07141e94e36482809147`.
+  Updated the fixed snapshot and EAC `/eac/v1` source files, with exact sizes and
+  SHA-256 checks for every downloaded file. No vault data, credentials or account
+  data are included in the package.
+- Adopted the upstream RTK Token Saver output-validation fixes for mixed webpage
+  content, timestamps, citations, Windows paths, filenames with spaces and
+  extensionless search hits. Focused regression tests cover these cases.
+- Chromium checked all six console pages at 1440x1000 and 390x844 in light and
+  dark themes with no uncaught script errors. The light mobile usage page has an
+  intentionally horizontally scrollable navigation strip; the content remains
+  readable and screenshots were captured for every page.
+- `npm run check` passed. `npm test`: **224 passed, 0 failed, 2 skipped**.
+  The two optional original-channel tests passed separately (**2/2**). Production
+  channel and EAC downloads passed size/hash verification and offline cache reuse.
+- Live vendor eligibility, real EAC GitHub authorization, Windows proxy behavior,
+  provider quotas and a public Cloudflare tunnel were not exercised in this run.
+
 
 ## Upstream standalone/core/channel refresh - 2026-10-11
 

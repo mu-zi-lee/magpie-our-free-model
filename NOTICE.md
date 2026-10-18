@@ -5,8 +5,8 @@
 The full account-channel integration, standalone model runtime, EAC authorization,
 statistics and local management UI are from **Ebony-Vinyl/dsh-our-free-model**:
 https://github.com/Ebony-Vinyl/dsh-our-free-model
-Pinned commit: e9c4b70d913116284692d7b206a63f39ad6fe8cc (2026-10-11).
-88 upstream runtime/asset/license paths are retained under vendor/ofm; 80 are
+Pinned commit: 9e6121802ab5b87e379a07141e94e36482809147 (reviewed 2026-10-14, upstream 2.2.0).
+90 upstream runtime/asset/license paths are retained under vendor/ofm; 82 are
 byte-for-byte copies. UPSTREAM.json records original and adapted hashes and the
 two omitted encrypted EAC data files. Eight adapted paths are documented: removing
 bundled Google OAuth defaults and the Loomy WeChat App ID, replacing vault.js with an empty stub, and adding
@@ -20,7 +20,7 @@ vendor/ofm/vendor/channel-pack/NOTICE.md and LICENSE. The channel pack's origina
 upstream is iJetLi/deepseek-harness-codearts (Gitee), absorbed commit
 345f0a07b22713c0ae189ca7d8b97ec4f64626c6.
 
-Qoder's WASM runtime code is retained unchanged. Original EAC material is not shipped, logged, re-minted or published by this repository. The plugin downloads unchanged vault modules and their MIT license from the official upstream at the pinned commit, verifies pinned SHA-256 digests, and caches them privately (0700/0600). Its existing openSeal function is used only inside the local service, matching upstream standalone. Decrypted values are never persisted. The user may disable this installation with managed.autoInstallEac: false or choose their own local upstream source. Original GitHub/Star authorization and server checks
+Qoder's WASM runtime code is retained unchanged. Original EAC material is not shipped, logged, re-minted or published by this repository. The plugin downloads unchanged vault modules and their MIT license from the official upstream at the pinned commit, verifies pinned sizes and SHA-256 digests, and caches them privately (0700/0600). Version 0.9.1 uses the upstream 2.2.0 gateway migration files as a matched pair. Its existing openSeal function is used only inside the local service, matching upstream standalone. Decrypted values are never persisted. The user may disable this installation with managed.autoInstallEac: false or choose their own local upstream source. Original GitHub/Star authorization and server checks
 remain in place. No personal account credentials, local API keys or data directories
 are included.
 

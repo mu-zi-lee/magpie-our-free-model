@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
-export const CHANNEL_COMMIT = 'e9c4b70d913116284692d7b206a63f39ad6fe8cc';
+export const CHANNEL_COMMIT = '9e6121802ab5b87e379a07141e94e36482809147';
 // Load the complete upstream channel bundle unchanged, including native login
 // defaults. Downloaded modules stay outside the public plugin distribution.
 export const CHANNEL_FILES = Object.freeze([

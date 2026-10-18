@@ -12,12 +12,12 @@ async function fixture(t) {
   const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ofm-eac-test-'));
   t.after(() => fs.rm(dataDir, { recursive: true, force: true }));
   const contents = {
-    'src/vault.js': `import { value } from './vault-data.js'; export function openSeal() { return { mode: 'worker', base: 'https://fixture.invalid/v1', signingSecret: value }; }`,
+    'src/vault.js': `import { value } from './vault-data.js'; export function openSeal() { return { mode: 'worker', base: 'https://fixture.invalid/eac/v1', signingSecret: value }; }`,
     'src/vault-data.js': `export const value = 'fixture-signing-value-for-tests-only';`,
     'src/vault-anchor.js': '// fixture anchor', LICENSE: 'fixture license',
   };
   const requests = [];
-  const dependencies = { files: EAC_FILES.map(file => ({ path: file.path, sha256: sha(contents[file.path]) })),
+  const dependencies = { files: EAC_FILES.map(file => ({ path: file.path, bytes: Buffer.byteLength(contents[file.path]), sha256: sha(contents[file.path]) })),
     async fetch(url, options) {
       requests.push({ url, options });
       const file = EAC_FILES.find(file => url.endsWith('/' + file.path));
@@ -31,6 +31,7 @@ test('automatic EAC source: pinned official origin, all hashes, private cache an
   const loaded = await loadEacSource({ dataDir: f.dataDir }, f.dependencies);
   assert.deepEqual(loaded.setup, { state: 'ready', source: 'download', commit: EAC_COMMIT });
   assert.equal(loaded.credentialOf().mode, 'worker');
+  assert.equal(new URL(loaded.credentialOf().base).pathname, '/eac/v1');
   assert.equal(f.requests.length, EAC_FILES.length);
   for (const request of f.requests) {
     assert.ok(request.url.startsWith(`https://raw.githubusercontent.com/Ebony-Vinyl/dsh-our-free-model/${EAC_COMMIT}/`));

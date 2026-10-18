@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "e9c4b70d913116284692d7b206a63f39ad6fe8cc",
+  "commit": "9e6121802ab5b87e379a07141e94e36482809147",
   "files": [
     {
       "path": "LICENSE",
@@ -10,7 +10,7 @@
     {
       "path": "package.json",
       "bytes": 2941,
-      "sha256": "65d2cf69f41f94f1cf8d2e25ee605941302dcbe39b01cd748dc13200aa22eabd"
+      "sha256": "1e6e34df59cf782f9a95c05c14f282857db28fc9b0837d57d1ac689298a26e2e"
     },
     {
       "path": "packages/standalone/README.md",
@@ -70,7 +70,7 @@
     {
       "path": "packages/standalone/package.json",
       "bytes": 917,
-      "sha256": "dc75891b74091aabcb3be13cee6f9e63244af545f5355d7382d8f5a87e308eae"
+      "sha256": "32ccbf7716a9f026f56c864f61989caf6d16d0317e8292774f6c52d84e775cd4"
     },
     {
       "path": "packages/standalone/service.mjs",
@@ -84,8 +84,8 @@
     },
     {
       "path": "packages/standalone/web/app.css",
-      "bytes": 387838,
-      "sha256": "c43f69d5bb378bf3323c0b40a6f24cceda89ff8dc3a12d5a36ecdc49395fef85"
+      "bytes": 409145,
+      "sha256": "518b1bbdc44667900ca60224a43e574112081be7ae1c497ed4b7c8e191887a0b"
     },
     {
       "path": "packages/standalone/web/app.js",
@@ -131,6 +131,11 @@
       "path": "packages/standalone/web/settings-Cq1Y-v4k.js",
       "bytes": 6883,
       "sha256": "67a898b94db7e404cd92adca6a693279debb29238e220abb10adc8d6fca9e68a"
+    },
+    {
+      "path": "packages/standalone/web/splash.html",
+      "bytes": 8247,
+      "sha256": "59107f744bace56bd742b34a7a54889970c731e60f90236ce92e21106cc33b7d"
     },
     {
       "path": "packages/standalone/web/usage-SUrY-tWU.js",
@@ -329,8 +334,8 @@
     },
     {
       "path": "src/token-saver/rtk/autodetect.js",
-      "bytes": 6695,
-      "sha256": "e88809de7adaa512b648181b73a68631d0d6bad1dfa80cfae92c3ecbb8961f88"
+      "bytes": 7041,
+      "sha256": "017650d4a88959552dfd6a01b8841fd5caeead462271ae355b7730fbfd5c9416"
     },
     {
       "path": "src/token-saver/rtk/constants.js",
@@ -369,8 +374,8 @@
     },
     {
       "path": "src/token-saver/rtk/filters/grep.js",
-      "bytes": 2446,
-      "sha256": "1cbd9ae989f5b66894ca49f80a04954ab173d7580aabd9cd60c362433dd5e0e5"
+      "bytes": 1845,
+      "sha256": "06abe489488e2c796696d4f1b42f91d19c2dfa6b50fadd82d9c8331e15f157b1"
     },
     {
       "path": "src/token-saver/rtk/filters/ls.js",
@@ -396,6 +401,11 @@
       "path": "src/token-saver/rtk/filters/tree.js",
       "bytes": 1347,
       "sha256": "283ce99b64971c5c83786e5f8d68f78bdbbc67372f80c27af92823b1edf09082"
+    },
+    {
+      "path": "src/token-saver/rtk/hitLine.js",
+      "bytes": 3188,
+      "sha256": "b87bfe38ea75451b94da3cf202c281245ec2650ae283fcff37cf8e3dfe58d64e"
     },
     {
       "path": "src/token-saver/rtk/index.js",

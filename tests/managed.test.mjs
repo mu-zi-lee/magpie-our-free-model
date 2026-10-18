@@ -99,6 +99,15 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     const body = raw ? JSON.parse(raw) : {};
     requests.push({ pathname, body, headers: req.headers });
     const json = value => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(value)); };
+    if (req.headers['x-ofm-signature']) {
+      const expected = crypto.createHmac('sha256', 'fixture-only-not-a-production-secret')
+        .update(`${req.headers['x-ofm-timestamp']}\n${req.method}\n${pathname}\n${crypto.createHash('sha256').update(raw).digest('hex')}`)
+        .digest('hex');
+      if (!pathname.startsWith('/remote/eac/v1/') || req.headers['x-ofm-signature'] !== expected) {
+        res.statusCode = 403;
+        return json({ error: { message: 'wrong mounted path or signature' } });
+      }
+    }
     if (pathname.endsWith('/auth/status')) return json({ authorized: !!req.headers['x-ofm-user'], starred: true });
     if (pathname.endsWith('/auth/github/start')) { res.writeHead(302, { location: 'https://example.invalid/login' }); return res.end(); }
     if (pathname.endsWith('/auth/poll')) return json({ status: 'ok', token: 'fixture-eac', login: 'fixture', ackRequired: true });
@@ -290,7 +299,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     assert.match(frames, /managed-ok/);
     assert.match(frames, /event: message_stop/);
   });
-  await t.test('EAC preserves upstream authorization and updates the unified model catalog', async () => {
+  await t.test('migrated EAC gateway preserves mounted auth paths, signed requests and model catalog', async () => {
     const status = await api('/api/management/eac/status');
     assert.equal(status.body.available, true);
     assert.equal(status.body.authorized, false);
@@ -298,14 +307,20 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     assert.equal((await plugin.provider.models(provider, { auth }))['fixture-eac-model'], undefined);
     const start = await api('/api/management/eac/login/start', {});
     assert.ok(start.body.link, JSON.stringify(start));
+    assert.equal(new URL(start.body.url).pathname, '/remote/eac/auth/github/start');
     const poll = await api(`/api/management/eac/login/poll?link=${start.body.link}`);
     assert.equal(poll.body.status, 'ok');
     const rows = await until(async () => { const rows = await plugin.provider.models(provider, { auth }); return rows['fixture-eac-model'] ? rows : undefined; });
     const id = 'fixture-eac-model';
     const response = await call(id); assert.equal(response.status, 200); await response.text();
     const request = requests.findLast(req => req.pathname.endsWith('/chat/completions'));
+    assert.equal(request.pathname, '/remote/eac/v1/chat/completions');
     assert.equal(request.headers['x-ofm-user'], 'fixture-eac');
     assert.equal(typeof request.headers['x-ofm-signature'], 'string');
+    assert.ok(requests.some(req => req.pathname === '/remote/eac/auth/status'));
+    assert.ok(requests.some(req => req.pathname === '/remote/eac/auth/poll'));
+    assert.ok(requests.some(req => req.pathname === '/remote/eac/auth/ack'));
+    assert.ok(requests.some(req => req.pathname === '/remote/eac/v1/models'));
   });
   await t.test('stale Magpie catalog cannot re-enable a disabled model', async () => {
     const disabled = await api('/api/management/channels/rpc', { method: 'model.setDisabled', payload: { provider: 'buddy', modelId: 'fixture-free', disabled: true } });

@@ -4,6 +4,38 @@ Target repository: `mu-zi-lee/magpie-our-free-model`, branch `main`.
 Source: `Ebony-Vinyl/dsh-our-free-model`.
 The source snapshot, not this document, is authoritative: `vendor/ofm/UPSTREAM.json`.
 
+## 0.9.1 - 2026-10-14
+
+Reviewed changes from `e9c4b70d913116284692d7b206a63f39ad6fe8cc`
+to upstream 2.2.0 at `9e6121802ab5b87e379a07141e94e36482809147`.
+
+Adopted:
+
+- The matched EAC migration files from the new fixed source revision, downloaded
+  into the private runtime cache. Updated both hashes together and added exact
+  file sizes to EAC download/cache validation. Real authorization still requires
+  the original GitHub/Star workflow; existing users may need to log in again.
+- RTK whole-output validation prevents timestamps, source citations or mixed
+  webpage prose from being discarded as grep output, including content beyond
+  the sampling window. Windows drive paths, filenames containing spaces and
+  extensionless search hits are retained. Focused tests cover all three wires.
+- Published standalone theme refinements and the upstream service version 2.2.0.
+  The original Magpie service, console, cleanup and Anthropic adaptations remain.
+
+Deferred:
+
+- Upstream Tauri desktop packaging/window/tray features do not apply to Magpie's
+  managed service. No desktop binary or separate desktop runtime is included.
+- Upstream's source-only gateway message identity fixes are not in its published
+  standalone business bundle, whose bytes are unchanged. That bundle remains
+  pinned and loaded unchanged; this release does not claim to include the fix.
+- Aggregate provider, fallback-chain and token-saving configuration controls
+  retain the standalone integration limits recorded for 0.9.0.
+
+The original checkout path no longer existed when this run started. Maintenance
+used a fresh isolated clone of the target repository in a temporary directory;
+no deleted user checkout or application data was recreated.
+
 ## 0.9.0 - 2026-10-11
 
 Reviewed the changes from `f8974369c5904858c696b520d8b9b82ad4425f78`
@@ -45,6 +77,9 @@ For each run:
 
 1. Fetch both repositories and compare the source HEAD with the snapshot pin.
    Review actual code changes and upstream tests; do not copy an unreviewed HEAD.
+   If the configured checkout was moved or removed, use a fresh temporary clone
+   of the target repository and verify its origin instead of recreating the old
+   user-managed checkout. Do not include personal runtime caches in that clone.
 2. Integrate relevant standalone/core/channel changes and preserve Magpie service
    management, console security, uninstall ownership, credentials and licenses.
 3. Update the reviewed pin in `scripts/vendor-ofm.mjs`, then run

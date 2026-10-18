@@ -8,7 +8,7 @@ import { removeEmbeddedOAuthDefaults, externalizeEacCredentials } from './ofm-go
 import { patchChannelSource } from './ofm-channel-source-patch.mjs';
 import { patchEacDiagnostics, patchEacSetupUi } from './ofm-eac-setup-patch.mjs';
 
-const pin = 'e9c4b70d913116284692d7b206a63f39ad6fe8cc';
+const pin = '9e6121802ab5b87e379a07141e94e36482809147';
 const root = path.resolve(process.argv[2] || '');
 if (!process.argv[2]) throw new Error('Usage: node scripts/vendor-ofm.mjs /path/to/upstream');
 if (execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim() !== pin) throw new Error(`Expected upstream ${pin}`);

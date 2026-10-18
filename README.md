@@ -5,7 +5,7 @@
 > 账号渠道、EAC 授权流程、本地服务与管理界面来自原项目；这些功能的主要实现归原作者及其上游贡献者。
 > 本仓库新增 Magpie 供应商接口、自动服务管理、浏览器管理入口和兼容测试。
 
-版本 **0.9.0**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
+版本 **0.9.1**，包名 **`magpie-our-free-model`**。正常安装只显示 **Our Free Model** 一个供应商，统一提供匿名/Kilo、EAC 与账号渠道。
 插件图标使用 `assets/icon.png` 的无损 WebP 副本（像素和尺寸相同，满足 Magpie 的 1 MB 限制），随包加载，无需联网获取图标。
 
 [首次打开管理页面](#在-magpie-中打开管理页面) · [服务器访问](#服务器部署与浏览器控制台) · [页面打不开](#页面打不开时) · [更新](#更新已有版本) · [卸载清理](#卸载与自动清理)
@@ -83,10 +83,13 @@ magpie plugin add ./magpie-our-free-model
 
 ### 本次上游同步
 
-0.9.0 同步至上游 `e9c4b70d913116284692d7b206a63f39ad6fe8cc`：
-更新独立控制台的主题、模型批量开关与余额查询反馈，吸收 Gemini/Cline 的环境代理及 Windows 系统代理修复、
-Gemini 强制刷新配额和图片计价修复，增加本机 Anthropic Messages 接口。
-本插件补充账号渠道对 Anthropic 消息与工具格式的适配，保留模型停用、思考档位和输出上限校验。
+0.9.1 同步至原项目 **2.2.0**，固定提交 `9e6121802ab5b87e379a07141e94e36482809147`：
+跟进 EAC 网关迁移，更新私有来源下载的文件大小和 SHA-256，并验证带 `/eac` 路径前缀的授权、模型发现和签名推理。
+升级后完全退出并重启 Magpie；旧 EAC 授权可能需要在控制台重新完成 GitHub 登录和 Star 确认，无需删除账号数据。
+控制台显示的 **2.2.0** 是内置原服务版本，Magpie 插件包版本为 **0.9.1**。
+
+同时更新控制台明暗主题细节，吸收 RTK 压缩器保留混合正文、正确解析 Windows 搜索路径的修复。
+继续保留 0.9.0 的模型批量管理、代理与配额修复、原生 Anthropic 接口及账号渠道工具调用适配。
 
 上游 2.1 的聚合供应商、回退链与 Token 节省模块随核心保留，但当前上游独立控制台没有完整配置入口；
 本版不宣称这些 DSH 设置已迁移到 Magpie。同步范围和后续维护步骤见 `UPSTREAM_SYNC.md`。
@@ -227,7 +230,7 @@ ssh -N -L 18900:127.0.0.1:18900 -L 18901:127.0.0.1:18901 your-user@your-server
 ### 直接使用原仓库渠道包
 
 默认 `managed.autoInstallChannels: true`。首次启动自动下载固定提交
-`e9c4b70d913116284692d7b206a63f39ad6fe8cc` 的完整 `business.mjs`、contracts、Qoder WASM 与许可文件，
+`9e6121802ab5b87e379a07141e94e36482809147` 的完整 `business.mjs`、contracts、Qoder WASM 与许可文件，
 来源固定为原仓库的 **raw.githubusercontent.com**。完整文件集合通过固定大小和 SHA-256 校验后才会加载，
 保存在专用数据目录的 `runtime/channels-<提交>/`；原文件不做内容改写，类 Unix 系统目录/文件权限为 0700/0600。
 每次启动复核缓存，缓存完整时可离线加载。首次下载失败会明确报错，请检查网络并重启；不会悄悄换用其他登录配置。
@@ -246,8 +249,8 @@ Google 原项目已有的环境变量接口仍属于上游行为，插件不额�
 ### EAC 自动接入
 
 默认 `managed.autoInstallEac: true`。首次启动自动从原项目的 **raw.githubusercontent.com**
-下载固定提交 `e9c4b70d913116284692d7b206a63f39ad6fe8cc` 的 `src/vault.js`、两份数据依赖及 MIT 许可，
-按代码中固定的 SHA-256 校验完整文件集合后，保存到本机数据目录的 `runtime/eac-<提交>/`。
+下载固定提交 `9e6121802ab5b87e379a07141e94e36482809147` 的 `src/vault.js`、两份数据依赖及 MIT 许可，
+按代码中固定的文件大小和 SHA-256 校验完整文件集合后，保存到本机数据目录的 `runtime/eac-<提交>/`。
 原文件保持原样；类 Unix 系统目录权限为 0700、文件为 0600。每次启动复核缓存，之后可离线复用。
 这些原始来源文件不放进本插件的公开仓库或发布包，解封结果不写入磁盘、日志或网页。
 安装不需要 root、git、DSH 或手动填写路径，Linux/macOS/Windows 使用同一下载逻辑。
@@ -361,8 +364,8 @@ Windows 运行及 Linux/Windows 上的真实 Cloudflare 通道仍需对应平台
 
 ## 来源、贡献与许可证
 
-原项目运行代码固定于 [`e9c4b70d913116284692d7b206a63f39ad6fe8cc`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/e9c4b70d913116284692d7b206a63f39ad6fe8cc)，
-随包保存在 `vendor/ofm/`。88 个保留文件中 80 个保持原始字节；8 个有明确适配改动：
+原项目运行代码固定于 [`9e6121802ab5b87e379a07141e94e36482809147`](https://github.com/Ebony-Vinyl/dsh-our-free-model/tree/9e6121802ab5b87e379a07141e94e36482809147)，
+随包保存在 `vendor/ofm/`。90 个保留文件中 82 个保持原始字节；8 个有明确适配改动：
 移除内置 Google OAuth 默认凭据和 Loomy 微信 App ID、将 EAC 凭据模块替换为空实现、增加 EAC 来源入口及安装诊断，以及原渠道包加载入口。
 账号渠道 Worker 另兼容 Anthropic 网关提供的消息与工具格式。
 两个 EAC 加密凭据数据文件不随包分发。原始 SHA-256、改动摘要和省略清单见 `vendor/ofm/UPSTREAM.json`。

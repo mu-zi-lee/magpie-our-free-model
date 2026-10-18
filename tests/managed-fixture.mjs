@@ -15,5 +15,5 @@ lane.fetch = globalThis.fetch;
 if (process.env.OFM_TEST_EAC_SOURCE) {
   const vault = path.join(process.env.OFM_TEST_EAC_SOURCE, 'src/vault.js');
   fs.mkdirSync(path.dirname(vault), { recursive: true });
-  fs.writeFileSync(vault, `export function openSeal() { return { mode: 'worker', base: '${fixture}/remote/v1', signingSecret: 'fixture-only-not-a-production-secret' }; }\n`);
+  fs.writeFileSync(vault, `export function openSeal() { return { mode: 'worker', base: '${fixture}/remote/eac/v1', signingSecret: 'fixture-only-not-a-production-secret' }; }\n`);
 }
