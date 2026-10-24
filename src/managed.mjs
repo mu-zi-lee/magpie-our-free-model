@@ -49,7 +49,16 @@ export async function createManagedPlugin(input, options = {}) {
   };
   async function discover(auth, previous = {}, signal) {
     checkAuth(auth);
-    const conn = await runtime.connection();
+    let conn;
+    try { conn = await runtime.connection(); }
+    catch (error) {
+      signal?.throwIfAborted();
+      // Another live host (the desktop app beside a CLI command) owns this
+      // data directory: its service is fine, so keep the list Magpie has.
+      // Every other startup failure is the user's to see.
+      if (error.busy === true) return fallback(cache ?? previous);
+      throw error;
+    }
     try {
       const rows = await runtime.command('models');
       const models = {};
