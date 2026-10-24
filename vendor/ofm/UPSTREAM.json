@@ -517,6 +517,12 @@
       "originalSha256": "75601bec5d900b6d042458cead016308da05245df711d0c1f6c2d94b8b39a966",
       "sha256": "0290d5f1b9cf0e9039c29663381f35ec1450dc1eb5a9d308b01eca2150ea5613",
       "reason": "Select verified unchanged upstream channel business in the Worker. Accept harness messages/tools from the native Anthropic gateway; retain model enablement and effort/budget normalization."
+    },
+    {
+      "path": "src/forward.js",
+      "originalSha256": "d99a72bd01989018d7264e93957089be76e874493268840909570ce0d7765882",
+      "sha256": "fa2abb13a68afb3a6d548c0afbc9a5357f4af6ab754e6c3f0c7152db8f76feef",
+      "reason": "Report why a started stream stops instead of ending it silently."
     }
   ]
 }
