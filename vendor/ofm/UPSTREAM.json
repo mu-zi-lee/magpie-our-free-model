@@ -517,6 +517,12 @@
       "originalSha256": "75601bec5d900b6d042458cead016308da05245df711d0c1f6c2d94b8b39a966",
       "sha256": "0290d5f1b9cf0e9039c29663381f35ec1450dc1eb5a9d308b01eca2150ea5613",
       "reason": "Select verified unchanged upstream channel business in the Worker. Accept harness messages/tools from the native Anthropic gateway; retain model enablement and effort/budget normalization."
+    },
+    {
+      "path": "packages/standalone/management.mjs",
+      "originalSha256": "81889f0c1d4c7a1fcf3120e9998bae3cafe4270ed6fca8d00e5e697b5e61e510",
+      "sha256": "d62cc34c1b27dcb686d7f827c0684a2abc1885c6b673909d689061dbcbd1026f",
+      "reason": "Expose managedModels in the management summary so a second Magpie host (CLI beside the desktop app) publishes the same capability rows the plugin runner emits."
     }
   ]
 }
