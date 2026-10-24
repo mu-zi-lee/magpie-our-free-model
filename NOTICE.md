@@ -5,7 +5,7 @@
 The full account-channel integration, standalone model runtime, EAC authorization,
 statistics and local management UI are from **Ebony-Vinyl/dsh-our-free-model**:
 https://github.com/Ebony-Vinyl/dsh-our-free-model
-Pinned commit: 9e6121802ab5b87e379a07141e94e36482809147 (reviewed 2026-10-14, upstream 2.2.0).
+Pinned commit: 9e6121802ab5b87e379a07141e94e36482809147 (reviewed 2026-10-24; newer upstream changes reviewed selectively).
 90 upstream runtime/asset/license paths are retained under vendor/ofm; 82 are
 byte-for-byte copies. UPSTREAM.json records original and adapted hashes and the
 two omitted encrypted EAC data files. Eight adapted paths are documented: removing

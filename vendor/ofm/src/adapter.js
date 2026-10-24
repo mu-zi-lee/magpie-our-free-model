@@ -23,7 +23,7 @@ import { CODE, UpstreamError, postStreamed } from './http.js'
 import { postSealedStreamed } from './eac.js'
 import { postKiloStreamed } from './kilo.js'
 import { postAggregateStreamed, isAggregateEntry } from './aggregate.js'
-import { finishReason, readStream, windowTokens } from './stream.js'
+import { finishReason, readStream, sanitizeUsage, windowTokens } from './stream.js'
 import { DEFAULT_LEVEL, MIN_BUDGET, budgetFor, defaultEffortFor, effortPatchFor, effortsFor, resolveLevel } from './effort.js'
 import { createChannel } from './channel.js'
 import { recoveryPolicy, canRecover, canRecoverSilentStop, recoveryMessages, continuationMessages, checkpointFits, addUsage, createBlockTracker } from './recovery.js'
@@ -341,6 +341,21 @@ export class FreeModelAdapter {
     let attemptBudget = budget
     let nextIndex = 0
     let totalUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+    let rejectedInputUsage = false
+    const collectUsage = outcome => {
+      if (kilo && entry.id === 'kilo-auto/free' && outcome?.sawUsage === true) {
+        const usage = sanitizeUsage(outcome.usage, entry.contextWindow)
+        if (usage !== outcome.usage) {
+          rejectedInputUsage = true
+          outcome = usage === undefined
+            ? { ...outcome, sawUsage: false, usage: { inputTokens: 0, outputTokens: 0 } }
+            : { ...outcome, usage }
+        }
+      }
+      totalUsage = addUsage(totalUsage, outcome?.usage, outcome?.sawUsage)
+      if (rejectedInputUsage) totalUsage = { inputTokens: 0, outputTokens: totalUsage.outputTokens, ...totalUsage.reasoningTokens === undefined ? {} : { reasoningTokens: totalUsage.reasoningTokens } }
+      return outcome
+    }
     const blocks = createBlockTracker()
     let turnRecorded = false
     const finishTurn = (ok, recovered = false, attempts = 1) => {
@@ -524,7 +539,7 @@ export class FreeModelAdapter {
           await reader.return()
         }
         nextIndex = outcome.nextIndex
-        totalUsage = addUsage(totalUsage, outcome.usage, outcome.sawUsage)
+        outcome = collectUsage(outcome)
         usageAdded = true
         if (options.signal?.aborted === true) {
           record(false, outcome, { aborted: true })
@@ -610,7 +625,7 @@ export class FreeModelAdapter {
               ? `our free model reached its ${Math.round(timeoutMs / 1000)}s time limit before its finish token${recovering ? ', during the continuation from its checkpoint' : ''}`
               : `our free model continuation failed: ${failure.message}` }
         }
-        if (!usageAdded) totalUsage = addUsage(totalUsage, partialOutcome?.usage, partialOutcome?.sawUsage)
+        if (!usageAdded) partialOutcome = collectUsage(partialOutcome)
         record(false, partialOutcome, { ...(recovering || expired) ? { truncated: true } : {}, ...aborted ? { aborted: true } : {} })
         finishTurn(false, false, attempt + 1)
         for (const chunk of blocks.close()) yield chunk

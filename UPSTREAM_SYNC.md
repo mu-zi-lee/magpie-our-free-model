@@ -68,6 +68,20 @@ Deferred:
 
 ## Recurring Review
 
+## 0.9.2 - 2026-10-24
+
+Reviewed upstream through `38e0a9437e3a37c8c1a030c165de8cf8c7c0b7e8`.
+
+Adopted the reviewed Kilo free-lane usage fix from upstream `d1aae8f` and
+`53fe986b`: multimodal usage stamps larger than the advertised context window
+no longer poison host context budgeting. The adapter limits this heuristic to
+the exact `kilo-auto/free` route and preserves output/reasoning counters.
+
+Deferred DSH-only desktop, sponsor, relay, probe-disabling, FleetRelay and
+catalog/UI changes. The pinned vendor snapshot remains the verified Magpie
+adaptation; this release records the newer upstream review without copying
+unreviewed credentials, vault data or DSH distribution assets.
+
 A Codex app automation attached to the maintenance chat runs every 72 hours.
 The user authorized implementing suitable changes, committing and pushing them
 directly to the target repository after validation. The task is managed by the

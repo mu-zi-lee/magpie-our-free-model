@@ -459,6 +459,18 @@
   ],
   "adaptations": [
     {
+      "path": "src/adapter.js",
+      "originalSha256": "054e3b99ff4128e1ad486a6233edc9e03bed219c24c7c7041c76be319cd6f205",
+      "sha256": "e8c6877bb8bfc70729815328ee3c561f309a638d6327257f9116ff8218f0199f",
+      "reason": "Limit Kilo multimodal usage sanitization to the exact free route while preserving Magpie recovery accounting."
+    },
+    {
+      "path": "src/stream.js",
+      "originalSha256": "d7c561dab102b275e63daa68559e25a5c2b23dd534fbbac32cb17d5ac18aba17",
+      "sha256": "68ce386e47823158cc0216f712fa3101f4521e6f9e8b74b3e5ed6b8c85b7ebb3",
+      "reason": "Add the reviewed Kilo multimodal usage sanitizer."
+    },
+    {
       "path": "packages/standalone/channels/business.mjs",
       "originalSha256": "9793bea5c4ce51fb93fbba2dfe3691588ac050ed4727646c99d11977d2a8b457",
       "sha256": "4fcda5575ce16ccededfd74d599dab6e579e3349c722f823dec58bc66e49fa8e",

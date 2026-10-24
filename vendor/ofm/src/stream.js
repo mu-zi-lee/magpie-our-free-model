@@ -234,6 +234,21 @@ export function mapUsage(usage) {
   return out
 }
 
+/** Drop Kilo multimodal usage stamps that exceed the advertised context window. */
+export function sanitizeUsage(usage, contextWindow) {
+  if (!usage || typeof usage !== 'object' || !Number.isFinite(contextWindow) || contextWindow <= 0) return usage
+  const input = number(usage.inputTokens) ?? 0
+  const cacheRead = number(usage.cacheReadTokens) ?? 0
+  const total = number(usage.totalTokens)
+  if (input + cacheRead <= contextWindow && (total === undefined || total <= contextWindow)) return usage
+  const output = number(usage.outputTokens) ?? 0
+  const reasoning = number(usage.reasoningTokens)
+  if (output <= 0 && (reasoning === undefined || reasoning <= 0)) return undefined
+  const out = { inputTokens: 0, outputTokens: output }
+  if (reasoning !== undefined && reasoning > 0) out.reasoningTokens = reasoning
+  return out
+}
+
 function number(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
