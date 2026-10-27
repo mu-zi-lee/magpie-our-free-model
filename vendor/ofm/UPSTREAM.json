@@ -459,6 +459,12 @@
   ],
   "adaptations": [
     {
+      "path": "src/probe.js",
+      "originalSha256": "b3a65d3c2be6d8e5e3c9b305a4df64cce699915dc8c6e44273809bef689b2642",
+      "sha256": "47a735ac9e7af74e0407d1b3f4bcb02199baeae8270f82c904fdc2cd641a3122",
+      "reason": "Use an isolated upstream session per model during availability probes to avoid per-session quota bleed."
+    },
+    {
       "path": "src/adapter.js",
       "originalSha256": "054e3b99ff4128e1ad486a6233edc9e03bed219c24c7c7041c76be319cd6f205",
       "sha256": "e8c6877bb8bfc70729815328ee3c561f309a638d6327257f9116ff8218f0199f",

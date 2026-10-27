@@ -48,7 +48,9 @@ const PING_PROMPT = 'ping'
  */
 export async function probeModel(model, { attributionUserAgent, signal, timeoutMs = 45000 } = {}) {
   const started = Date.now()
-  const session = sessionForConversation('probe:our-free-model')
+  // Upstream quota is accounted per session; isolate each model so one probe
+  // cannot exhaust the allowance and make later models look unavailable.
+  const session = sessionForConversation(`probe:our-free-model:${model.id}`)
   const wire = wireFor(model.id)
   const body = buildPing(model.id, wire)
   applyFingerprint(body, wire === 'responses')

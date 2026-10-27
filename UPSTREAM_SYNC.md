@@ -68,6 +68,13 @@ Deferred:
 
 ## Recurring Review
 
+## 2026-10-27 Review
+
+Adopted upstream `97120cd`: availability probes now derive a distinct stable
+upstream session from each model id, preventing one model's per-session quota
+from making later models appear unavailable. DSH desktop, FleetRelay, probe
+shutdown, and release/CI-only changes remain deferred.
+
 ## 0.9.2 - 2026-10-24
 
 Reviewed upstream through `38e0a9437e3a37c8c1a030c165de8cf8c7c0b7e8`.
