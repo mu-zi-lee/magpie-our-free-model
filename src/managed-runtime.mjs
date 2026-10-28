@@ -95,7 +95,7 @@ export function getManagedRuntime(input = {}, options = {}) {
               try {
                 const reply = JSON.parse(line);
                 if (reply.type === 'ready') finish(null, reply);
-                if (reply.type === 'error') finish(new Error(reply.message));
+                if (reply.type === 'error') finish(Object.assign(new Error(reply.message), reply.busy === true ? { busy: true } : {}));
                 if (reply.id && calls.has(reply.id)) {
                   const call = calls.get(reply.id);
                   calls.delete(reply.id);

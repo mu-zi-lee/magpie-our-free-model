@@ -373,3 +373,33 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     await assert.rejects(fetch(current.base + '/models', { signal: AbortSignal.timeout(1000) }));
   });
 });
+
+test('a data directory another live service holds keeps the last model list instead of failing the listing', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-busy-'));
+  const dataDir = path.join(dir, 'data');
+  fs.mkdirSync(dataDir, { recursive: true });
+  // A live owner (this test process), as the desktop app's runner is when a CLI host starts its own.
+  fs.writeFileSync(path.join(dataDir, 'service.lock'), JSON.stringify({ product: 'our-free-model-standalone', pid: process.pid }));
+  const options = { dataDir, nodePath: process.execPath, port: 0, consoleAccess: 'local',
+    autoInstallEac: false, autoInstallChannels: false, autoInstallCloudflared: false };
+  const plugin = await createManagedPlugin({ directory: dir }, options);
+  t.after(async () => { await plugin.lifecycle.dispose(); fs.rmSync(dir, { recursive: true, force: true }); });
+  const auth = { type: 'api', key: 'managed', metadata: { dataDir } };
+  const previous = { 'fixture-free': managedModel({ id: 'fixture-free' }, 'http://127.0.0.1:1/v1') };
+  const models = await plugin.provider.models({ models: previous }, { auth });
+  assert.deepEqual(Object.fromEntries(Object.entries(models)), previous);
+  assert.equal(models[Symbol.for('magpie.fellBack')], true);
+  const empty = await plugin.provider.models({}, { auth });
+  assert.deepEqual(Object.keys(empty), []);
+  assert.equal(empty[Symbol.for('magpie.fellBack')], true);
+  assert.ok(fs.existsSync(path.join(dataDir, 'service.lock')), 'the live owner keeps its lock');
+});
+
+test('a service that cannot start for another reason still fails the listing', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-nonode-'));
+  const dataDir = path.join(dir, 'data');
+  const plugin = await createManagedPlugin({ directory: dir }, { dataDir, nodePath: path.join(dir, 'missing-node') });
+  t.after(async () => { await plugin.lifecycle.dispose(); fs.rmSync(dir, { recursive: true, force: true }); });
+  const auth = { type: 'api', key: 'managed', metadata: { dataDir } };
+  await assert.rejects(plugin.provider.models({ models: {} }, { auth }), /Node/);
+});
