@@ -459,6 +459,12 @@
   ],
   "adaptations": [
     {
+      "path": "src/forward.js",
+      "originalSha256": "d99a72bd01989018d7264e93957089be76e874493268840909570ce0d7765882",
+      "sha256": "1b6547ac806e7bb054290fcaf151a9240d641be121ccf29e9b4ce4a96acecc92",
+      "reason": "Adopt upstream Responses sequence numbering and valid streamed tool-call deltas."
+    },
+    {
       "path": "src/probe.js",
       "originalSha256": "b3a65d3c2be6d8e5e3c9b305a4df64cce699915dc8c6e44273809bef689b2642",
       "sha256": "47a735ac9e7af74e0407d1b3f4bcb02199baeae8270f82c904fdc2cd641a3122",

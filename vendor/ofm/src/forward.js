@@ -837,19 +837,13 @@ async function chatCompletions(req, res, complete, options = {}) {
     if (chunk.type === 'tool-call-delta') {
       const action = tools.admit(chunk)
       if (action.kind === 'drop') return
-      sendSse(res, {
-        id, object: 'chat.completion.chunk', created, model,
-        choices: [{
-          index: 0,
-          delta: {
-            tool_calls: [{
-              index: action.openAiIndex,
-              ...(action.first ? { id: action.id, function: { name: action.name ?? '', arguments: '' } } : {}),
-            }],
-          },
-          finish_reason: null,
-        }],
-      })
+        if (action.first) sendSse(res, {
+          id, object: 'chat.completion.chunk', created, model,
+          choices: [{ index: 0, delta: { tool_calls: [{
+            index: action.openAiIndex, id: action.id, type: 'function',
+            function: { name: action.name ?? '', arguments: '' },
+          }] }, finish_reason: null }],
+        })
       if (action.args) {
         sendSse(res, { id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { tool_calls: [{ index: action.openAiIndex, function: { arguments: action.args } }] }, finish_reason: null }] })
       }
@@ -979,7 +973,8 @@ async function responsesEndpoint(req, res, complete, options = {}) {
 
   if (body.stream === true) {
     openStreamHeaders(res, options.heartbeatMs)
-    const say = (type, payload) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...payload })}\n\n`)
+    let sequence = 0
+    const say = (type, payload) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...payload, sequence_number: sequence++ })}\n\n`)
     const response = (over = {}) => ({
       id, object: 'response', created_at: created, model, status: 'in_progress',
       output: [], usage: undefined, ...over,

@@ -68,6 +68,13 @@ Deferred:
 
 ## Recurring Review
 
+## 2026-11-03 Review
+
+Adopted upstream `a51d170` and `341f48a`: Responses streaming events now carry
+strictly increasing `sequence_number` fields, and Chat Completions tool-call
+streams no longer emit schema-invalid bare index frames. DSH-only desktop and
+catalog changes remain deferred.
+
 ## 2026-10-27 Review
 
 Adopted upstream `97120cd`: availability probes now derive a distinct stable
