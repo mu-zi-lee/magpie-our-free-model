@@ -92,6 +92,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofm-managed-'));
   const dataDir = path.join(dir, 'data');
   const requests = [];
+  const freeListing = ['mimo-v2.6-flash-free', 'jev-1.13-free'];
   const upstream = createServer(async (req, res) => {
     let raw = '';
     for await (const chunk of req) raw += chunk;
@@ -115,12 +116,13 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     if (pathname.endsWith('/pool')) return json({ ok: true, inflight: 1 });
     if (pathname.endsWith('/models')) return json({ data: req.headers['x-ofm-signature']
       ? [{ id: 'fixture-eac-model' }] : pathname === '/models' ? [{ id: 'fixture/free', isFree: true }]
-      : [{ id: 'mimo-v2.6-flash-free' }] });
+      : freeListing.map(id => ({ id })) });
     if (pathname.includes('/console/enterprises/') || pathname.endsWith('/v3/config')) return json({ data: {
       models: [{ id: 'fixture-free', name: 'Fixture', credits: 'x0', maxInputTokens: 128000,
         maxOutputTokens: 4096, supportsImages: true, reasoning: { supportedEfforts: ['low', 'high'], defaultEffort: 'high' } }],
       agents: [{ name: 'craft', models: ['fixture-free'] }],
     } });
+    if (pathname.endsWith('/systemone')) return json({ model: body.model, answers: { ok: { noul: 0.9 } } });
     if (pathname.endsWith('/chat/completions')) {
       res.setHeader('content-type', 'text/event-stream');
       const frames = [ { choices: [{ index: 0, delta: { content: 'managed-ok' } }] },
@@ -258,6 +260,50 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
   const call = (model, extra = {}) => loader.fetch(`${loader.baseURL}/chat/completions`, { method: 'POST',
     headers: { authorization: 'Bearer downstream-secret', cookie: 'downstream-cookie' },
     body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: true, ...extra }) });
+  const decide = body => loader.fetch(`${loader.baseURL}/systemone`, { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  await t.test('the decision route admits its model like chat, then forwards the admitted one', async sub => {
+    const jev = await until(async () => { const rows = await plugin.provider.models(provider, { auth }); return rows['jev-1.13-free']; });
+    assert.equal(jev.decides, true);
+    // The decision forward leaves this process for Zen's fixed URL, and the
+    // runner child only serves this provider's own base. Point that one hop
+    // at the fixture, so the test needs no live Zen, and `zen` is exactly
+    // what the plugin forwarded.
+    const realFetch = globalThis.fetch;
+    const zen = [];
+    globalThis.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input?.url ?? String(input);
+      if (!url.startsWith('https://opencode.ai/')) return realFetch(input, init);
+      zen.push(url);
+      return realFetch(`${fixture}${new URL(url).pathname}`, init);
+    };
+    sub.after(() => { globalThis.fetch = realFetch; });
+    const question = model => ({ model, state: { text: 'ping' }, questions: { ok: { type: 'noul', instructions: 'Is this a test?' } } });
+    // the model this provider serves and the live catalog admits: the one
+    // request that leaves the plugin, at Zen's own decision path
+    const forwarded = await decide(question('jev-1.13-free'));
+    assert.equal(forwarded.status, 200, await forwarded.text());
+    assert.deepEqual(zen, ['https://opencode.ai/zen/v1/systemone']);
+    // a decision model that never existed, a chat model of the same provider,
+    // and a body that names none: refused here, never forwarded
+    for (const model of ['jev-9.9-free', 'mimo-v2.6-flash-free']) {
+      const refused = await decide(question(model));
+      assert.equal(refused.status, 404, model);
+      assert.equal((await refused.json()).error.type, 'invalid_request_error');
+    }
+    const unnamed = await decide({ state: { text: 'ping' }, questions: {} });
+    assert.equal(unnamed.status, 404);
+    assert.equal(zen.length, 1);
+    // switched off in the console: the live catalog the chat route reads
+    // decides it too, so a model Magpie still holds cannot answer System One
+    freeListing.length = 0;
+    freeListing.push('mimo-v2.6-flash-free');
+    await api('/api/management/models/refresh', {});
+    await until(async () => (await plugin.provider.models(provider, { auth }))['jev-1.13-free'] === undefined);
+    const disabled = await decide(question('jev-1.13-free'));
+    assert.equal(disabled.status, 404, await disabled.text());
+    assert.equal(zen.length, 1);
+  });
   await t.test('real channel inference retains tools and strips downstream secrets', async () => {
     const response = await call('buddy/fixture-free', { tools: [{ type: 'function', function: { name: 'lookup', parameters: {} } }] });
     assert.equal(response.status, 200);

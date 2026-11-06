@@ -15,4 +15,7 @@ for (const [name, factory] of Object.entries(module)) {
 assert.deepEqual(Object.keys(module), ['OurFreeModelPlugin']);
 assert.deepEqual(Object.keys(cfg.provider), ['our-free-model']);
 assert.equal(cfg.provider['our-free-model'].name, 'Our Free Model');
+// The decision models (Jev) are served by this same provider (config's
+// decide): magpie asks them at the provider's base /systemone.
+assert.equal(cfg.provider['our-free-model'].decide, true);
 console.log('Plugin contract check passed (no network or credentials).');
