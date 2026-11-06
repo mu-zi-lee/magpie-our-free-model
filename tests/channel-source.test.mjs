@@ -76,6 +76,7 @@ test('anchor-bearing bundle: runtime loads a patched sibling and the pristine pi
   const gated = await fs.readFile(path.join(directory, 'packages/standalone/channels/business.workbuddy-gated.mjs'), 'utf8');
   assert.match(gated, /X-Conversation-ID/);
   assert.match(gated, /You are a helpful assistant\./);
+  // This fixture omits the Trae region, so its independent patch safely no-ops.
   // The pinned pristine file is byte-for-byte the downloaded upstream bundle.
   assert.deepEqual(await fs.readFile(path.join(directory, businessPath)), pristine);
   // Re-invocation reuses the sibling without re-downloading or rewriting it.

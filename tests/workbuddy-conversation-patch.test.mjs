@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import { applyWorkbuddyConversationPatch, workbuddyConversationPatched } from '../src/workbuddy-conversation-patch.mjs';
+import { applyTraeUsagePatch } from '../src/trae-usage-patch.mjs';
 
 // Minimal stand-ins for the two BuddyAdapter regions the patch targets, using
 // the exact upstream text so a shape change here fails loudly.
@@ -25,6 +27,14 @@ test('workbuddy patch adds the three conversation headers and a system fallback'
   assert.ok(out.includes(HEADER_BLOCK), 'missing the X-Conversation-* block');
   assert.ok(out.includes(SYSTEM_BLOCK), 'missing the system fallback block');
   assert.equal(workbuddyConversationPatched(out), true);
+});
+
+test('Trae usage patch separates cached input, clamps malformed cache counts and is idempotent', () => {
+  const original = fs.readFileSync(new URL('../vendor/ofm/packages/standalone/channels/business.mjs', import.meta.url), 'utf8');
+  const patched = applyTraeUsagePatch(original);
+  assert.match(patched, /cache_read_input_tokens/);
+  assert.match(patched, /inputTokens: Math\.max\(0, promptTokens - cachedTokens\)/);
+  assert.equal(applyTraeUsagePatch(patched), patched);
 });
 
 test('workbuddy patch is idempotent and preserves everything around the anchors', () => {

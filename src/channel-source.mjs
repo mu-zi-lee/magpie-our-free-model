@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { applyWorkbuddyConversationPatch, workbuddyConversationPatched } from './workbuddy-conversation-patch.mjs';
+import { applyTraeUsagePatch, traeUsagePatched } from './trae-usage-patch.mjs';
 
 export const CHANNEL_COMMIT = '9e6121802ab5b87e379a07141e94e36482809147';
 // Load the complete upstream channel bundle unchanged, including native login
@@ -142,8 +143,10 @@ async function gatedBusinessPath(directory, logger) {
   let patched;
   try {
     const source = await fs.readFile(pristine, 'utf8');
-    if (workbuddyConversationPatched(source)) return pristine;
+    if (workbuddyConversationPatched(source) && traeUsagePatched(source)) return pristine;
     patched = applyWorkbuddyConversationPatch(source);
+    try { patched = applyTraeUsagePatch(patched); }
+    catch (error) { warn(`Trae 用量补丁未应用，保留其他渠道适配：${error?.message ?? error}`); }
   } catch (error) {
     warn(`WorkBuddy 会话头补丁未应用，渠道包按原样加载：${error?.message ?? error}`);
     return pristine;

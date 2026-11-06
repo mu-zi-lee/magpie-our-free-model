@@ -45,17 +45,20 @@ function start(dataDir, role) {
   const reported = new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${role} timed out: ${out}${err}`)), 60000);
     let settled = false;
-    const watch = setInterval(() => {
-      const line = out.trim().split('\n').findLast(candidate => candidate.startsWith('{'));
-      if (!line) return;
-      clearInterval(watch);
+    let pending = '';
+    child.stdout.on('data', chunk => {
+      pending += chunk.toString();
+      const lines = pending.split('\n');
+      pending = lines.pop() ?? '';
+      const line = lines.findLast(candidate => candidate.startsWith('{'));
+      if (!line || settled) return;
+      settled = true;
       clearTimeout(timer);
-      try { settled = true; resolve(JSON.parse(line)); }
+      try { resolve(JSON.parse(line)); }
       catch { reject(new Error(`${role} returned invalid JSON: ${out}${err}`)); }
-    }, 50);
+    });
     child.on('exit', code => {
       if (settled) return;
-      clearInterval(watch);
       clearTimeout(timer);
       reject(new Error(`${role} exited ${code} before reporting: ${out}${err}`));
     });

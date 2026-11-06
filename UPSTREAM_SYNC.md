@@ -86,6 +86,20 @@ Deferred:
 
 ## Recurring Review
 
+## Issue Review - 2026-11-06 (continued)
+
+Addressed issue #6 with the reviewed WorkBuddy conversation-gate patch from
+closed PR #8. The verified channel download remains pristine; a sibling module
+is generated after integrity verification and adds the three required
+`X-Conversation-*` headers plus a leading system message only for WorkBuddy.
+CodeBuddy and other channels are unchanged.
+
+Addressed issue #13 using upstream `fe00e9d`: Trae `token_usage` frames now read
+`cache_read_input_tokens` (and the compatible OpenAI cache field), subtract the
+value from uncached input, and expose it as `cacheReadTokens`. The change is a
+shape-checked, idempotent adaptation of the vendored bundle; no credentials or
+upstream runtime files were imported.
+
 ## Issue Review - 2026-11-06
 
 Addressed issue #15: a transient bind fallback no longer overwrites the
