@@ -61,7 +61,8 @@ lines.once('line', async line => {
     parentWatch.unref();
   } catch (error) {
     await Promise.allSettled([service?.close(), consoleHandoff?.close()]);
-    process.stdout.write(JSON.stringify({ type: 'error', message: error.code === 'EEXIST'
+    const busy = error.code === 'EEXIST';
+    process.stdout.write(JSON.stringify({ type: 'error', ...busy ? { busy } : {}, message: busy
       ? '数据目录已被另一个服务占用；关闭那个服务或使用另一个 managed.dataDir。'
       : `内置服务启动失败：${error.message}` }) + '\n');
     process.exit(1);
