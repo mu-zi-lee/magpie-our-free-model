@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { removeEmbeddedOAuthDefaults, externalizeEacCredentials } from './ofm-google-config-patch.mjs';
 import { patchChannelSource } from './ofm-channel-source-patch.mjs';
 import { patchEacDiagnostics, patchEacSetupUi } from './ofm-eac-setup-patch.mjs';
+import { patchStreamFailure } from './ofm-forward-patch.mjs';
 
 const pin = '9e6121802ab5b87e379a07141e94e36482809147';
 const root = path.resolve(process.argv[2] || '');
@@ -48,6 +49,7 @@ const channelPages = manifest.filter(row => /^packages\/standalone\/web\/channel
 if (!channelPages.length) throw new Error('Upstream channel UI bundle missing');
 for (const [file, patch, reason] of [
   ['packages/standalone/eac.mjs', patchEacDiagnostics, 'Expose safe EAC installation diagnostics.'],
+  ['src/forward.js', patchStreamFailure, 'Report why a started stream stops instead of ending it silently.'],
   ...channelPages.map(row => [row.path, patchEacSetupUi, 'Display safe EAC installation diagnostics.']),
   ...['packages/standalone/service.mjs', 'packages/standalone/channels/runtime.mjs', 'packages/standalone/channels/worker.mjs']
     .map(file => [file, source => patchChannelSource(file, source), 'Select verified unchanged upstream channel business in the Worker.'

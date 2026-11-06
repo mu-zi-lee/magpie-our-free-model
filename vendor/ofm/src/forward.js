@@ -312,7 +312,12 @@ export async function startForwardServer({ config, complete, modelRows, log = ()
         const status = Number(error?.statusCode)
         const code = Number.isInteger(status) && status >= 400 && status <= 599 ? status : 500
         openAiError(res, code, code === 500 ? 'server_error' : 'invalid_request_error', String(error?.message ?? error))
-      } else {
+      } else if (!res.writableEnded) {
+        // The stream already started: say why it stops, or the caller only
+        // sees a stream cut short with no reason.
+        try {
+          res.write(`data: ${JSON.stringify({ error: { message: String(error?.message ?? error), type: 'server_error' } })}\n\n`)
+        } catch {}
         res.end()
       }
     })

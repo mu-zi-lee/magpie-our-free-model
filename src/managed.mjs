@@ -1,5 +1,5 @@
 import { getManagedRuntime } from './managed-runtime.mjs';
-import { safeID, positive, fallback, chatRequest, forwardChat } from './transport.mjs';
+import { safeID, positive, fallback, chatRequest, forwardChat, listModels } from './transport.mjs';
 import { remoteByDefault } from './cloudflare-console.mjs';
 import fs from 'node:fs';
 
@@ -16,7 +16,10 @@ export function managedModel(row, base) {
   const efforts = Array.isArray(rawEfforts) ? rawEfforts : [];
   const variants = {};
   for (const value of efforts) {
-    const effort = typeof value === 'string' ? value : value?.id;
+    // Offer the canonical name (none/low/…/max) when the service gives one:
+    // agents only understand those, and the service maps them back to the
+    // channel's own levels (on/off, light/extra_high, …) on every request.
+    const effort = typeof value === 'string' ? value : value?.canonical ?? value?.id;
     if (safeID(effort)) variants[effort] = { reasoningEffort: effort };
   }
   return {
@@ -29,6 +32,25 @@ export function managedModel(row, base) {
       output: { text: true, image: false, audio: false, video: false, pdf: false } },
     options: {}, headers: {}, variants, status: 'active', release_date: '',
   };
+}
+
+// Channel rules the service doesn't apply on its forward path. WorkBuddy
+// rejects a conversation whose first message isn't a system prompt (code
+// 11128, sent as an empty stream); CodeArts answers an empty stream to
+// max_tokens above 65536.
+const CODEARTS_MAX_TOKENS = 65536;
+export function adaptChannelRequest(body) {
+  const channel = body.model.split('/')[0];
+  if (channel === 'workbuddy' && Array.isArray(body.messages) &&
+      !['system', 'developer'].includes(body.messages[0]?.role)) {
+    body.messages = [{ role: 'system', content: 'You are a helpful assistant.' }, ...body.messages];
+  }
+  if (channel === 'codearts') {
+    for (const field of ['max_tokens', 'max_completion_tokens']) {
+      if (Number.isFinite(body[field]) && body[field] > CODEARTS_MAX_TOKENS) body[field] = CODEARTS_MAX_TOKENS;
+    }
+  }
+  return body;
 }
 
 export async function createManagedPlugin(input, options = {}) {
@@ -47,16 +69,44 @@ export async function createManagedPlugin(input, options = {}) {
       throw Object.assign(new Error('请在 Our Free Model 一体化供应商中重新打开控制台并启用'), { signIn: 'expired' });
     }
   };
-  async function discover(auth, previous = {}, signal) {
-    checkAuth(auth);
-    const conn = await runtime.connection();
+  // Another Magpie process (the app, while `magpie sync` runs in a terminal)
+  // already serves this data directory: list the rows that service shares
+  // instead of failing over to the last list.
+  async function discoverFromLiveService() {
+    const shared = JSON.parse(fs.readFileSync(`${runtime.dataDir}/managed-models.json`, 'utf8'));
+    process.kill(shared.pid, 0);
+    const { forwardKey } = JSON.parse(fs.readFileSync(`${runtime.dataDir}/settings.json`, 'utf8'));
+    return modelsOf(shared.rows, `${shared.url}/v1`, forwardKey);
+  }
+  // The service's own rows, then the account channels' rows from its model
+  // listing: listed here too so their reasoning levels go out by canonical
+  // name rather than as the channel's own (on/off, light/extra_high).
+  async function modelsOf(rows, base, key) {
+    const models = {};
+    for (const row of rows) {
+      const model = managedModel(row, base);
+      if (model) models[model.id] = model;
+    }
     try {
-      const rows = await runtime.command('models');
-      const models = {};
-      for (const row of rows) {
-        const model = managedModel(row, conn.base);
+      for (const row of await listModels(base, key)) {
+        if (models[row?.id] || !row?.reasoning || typeof row.reasoning !== 'object') continue;
+        const model = managedModel(row, base);
         if (model) models[model.id] = model;
       }
+    } catch {}
+    return models;
+  }
+  async function discover(auth, previous = {}, signal) {
+    checkAuth(auth);
+    let conn;
+    try {
+      conn = await runtime.connection();
+    } catch (error) {
+      if (!/数据目录已被另一个服务占用/.test(error.message)) throw error;
+      try { return await discoverFromLiveService(); } catch { throw error; }
+    }
+    try {
+      const models = await modelsOf(await runtime.command('models'), conn.base, conn.key);
       cache = models;
       return models;
     } catch (error) {
@@ -91,13 +141,17 @@ export async function createManagedPlugin(input, options = {}) {
           if (current.base !== conn.base) throw new Error('内置服务地址发生变化，请刷新或重载供应商');
           const { request, body } = await chatRequest(input, init, current.base);
           request.signal.throwIfAborted();
-          if (!await runtime.command('admit', { model: body.model }, request.signal)) {
+          // A busy channel worker can take longer than the admit check may
+          // wait; the service still checks the model, so go on and ask it.
+          const admitted = await runtime.command('admit', { model: body.model }, request.signal)
+            .catch(error => { if (error.message === '内置服务管理请求超时') return true; throw error; });
+          if (!admitted) {
             return Response.json({ error: { type: 'invalid_request_error', message: '模型不存在、已停用或没有可用账号；请在控制台检查并刷新模型' } }, { status: 404 });
           }
           request.signal.throwIfAborted();
           // The service checks its live catalog on every request. Never let an
           // old Magpie cache re-enable a model disabled in the console.
-          return forwardChat(request, body, { key: current.key });
+          return forwardChat(request, adaptChannelRequest(body), { key: current.key });
         } };
       },
       async usage(auth) {
