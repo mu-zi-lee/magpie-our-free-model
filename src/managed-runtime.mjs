@@ -31,6 +31,17 @@ function liveLockOwner(dataDir) {
   } catch { return undefined; }
 }
 
+async function attachOrBusy(dataDir) {
+  try {
+    return { type: 'attached', ...await attachLiveService(dataDir) };
+  } catch (error) {
+    // A live lock is still a busy directory even when its settings/health
+    // cannot be read by this host. Discovery can safely retain its prior list;
+    // ordinary startup failures (no live lock) continue to surface normally.
+    throw Object.assign(error, { busy: true });
+  }
+}
+
 export function getManagedRuntime(input = {}, options = {}) {
   const directory = input.directory || input.worktree || path.join(os.homedir(), '.config', 'magpie');
   const dataDir = path.resolve(options.dataDir || path.join(directory, 'our-free-model'));
@@ -79,7 +90,7 @@ export function getManagedRuntime(input = {}, options = {}) {
       // both entries are legitimate, and a CLI run must not fail the way a
       // duplicate service always would.
       if (liveLockOwner(dataDir) !== undefined) {
-        state = { type: 'attached', ...await attachLiveService(dataDir) };
+        state = await attachOrBusy(dataDir);
         return state;
       }
       pending = (async () => {
@@ -87,7 +98,7 @@ export function getManagedRuntime(input = {}, options = {}) {
         return withInstallationLock(dataDir, async () => {
           if (disposed) throw new Error('本插件正在卸载，不能重新启动服务');
           if (liveLockOwner(dataDir) !== undefined) {
-            return { type: 'attached', ...await attachLiveService(dataDir) };
+            return attachOrBusy(dataDir);
           }
           const resolvedNode = await resolveNodeRuntime(options, dataDir, environment());
           const processHandle = spawn(resolvedNode, [runner], { env: environment(), stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
