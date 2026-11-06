@@ -68,6 +68,14 @@ Deferred:
 
 ## Recurring Review
 
+## 2026-11-06 Review
+
+Adopted upstream `7857b88`'s Kilo error-envelope improvement: concise provider
+details embedded in `metadata.raw` are now surfaced to the caller, capped at
+200 characters when the raw field is not JSON. Purpose-based session separation
+was deferred because the Magpie host's purpose/session contract is not verified
+by the current integration tests.
+
 ## 2026-11-03 Review
 
 Adopted upstream `a51d170` and `341f48a`: Responses streaming events now carry

@@ -167,6 +167,16 @@ test('Kilo forwards rate-limit metadata and does not mark public activation expi
   await denied.text();
 });
 
+test('Kilo surfaces bounded provider details from wrapped raw errors', async t => {
+  const { state, base, loader } = await fixture(t);
+  state.status = 502;
+  state.status = 200;
+  state.reply = JSON.stringify({ error: { message: 'gateway failed', metadata: { raw: JSON.stringify({ error: 'provider overloaded' }) } } });
+  const response = await request(loader, base);
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /provider overloaded/);
+});
+
 test('Kilo refuses upstream tool calls the client did not declare', async t => {
   const { state, base, loader } = await fixture(t);
   state.reply = JSON.stringify({ choices: [{ message: { tool_calls: [{ type: 'function', function: { name: 'unknown', arguments: '{}' } }] } }] });

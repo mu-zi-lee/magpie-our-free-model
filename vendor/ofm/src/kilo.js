@@ -151,9 +151,22 @@ function classifyKilo(status, text, retryAfterMs) {
   let payload
   try { payload = JSON.parse(text) } catch { payload = { error: { message: text.slice(0, 300) || `HTTP ${status}` } } }
   const type = payload?.error_type ?? payload?.error?.code ?? payload?.error?.type
+  const rawMeta = payload?.error?.metadata?.raw ?? payload?.metadata?.raw
+  let message = payload?.error?.message ?? (typeof payload?.message === 'string' ? payload.message : undefined)
+  if (typeof rawMeta === 'string' && rawMeta.trim() !== '') {
+    let detail = ''
+    try {
+      const parsed = JSON.parse(rawMeta)
+      detail = typeof parsed?.error === 'string' ? parsed.error
+        : typeof parsed?.message === 'string' ? parsed.message
+        : typeof parsed?.error?.message === 'string' ? parsed.error.message : ''
+    } catch { detail = rawMeta.slice(0, 200).trim() }
+    if (detail !== '') message = message ? `${message}: ${detail}` : detail
+  }
   const shaped = {
     error: {
       ...payload?.error,
+      ...(message === undefined ? {} : { message }),
       ...(type === undefined ? {} : { type: String(type) }),
     },
   }
