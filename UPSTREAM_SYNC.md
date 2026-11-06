@@ -86,6 +86,21 @@ Deferred:
 
 ## Recurring Review
 
+## 0.9.4 - 2026-11-06
+
+Issue-focused maintenance release.
+
+- Fixed Trae prompt-cache accounting: `cache_read_input_tokens` and the
+  compatible OpenAI cache field are exposed as `cacheReadTokens`, while
+  uncached input is kept disjoint.
+- Fixed WorkBuddy INTL conversation gates with a reproducible, idempotent
+  runtime/vendor adaptation that preserves pristine download integrity and
+  leaves other channels unchanged.
+- Fixed the combined live-service/busy-directory fallback path so a second
+  Magpie host retains its model list when an existing lock cannot be attached.
+
+Validation: `npm run check`; `npm test` (248 passed, 0 failed, 2 skipped).
+
 ## Issue Review - 2026-11-06 (continued)
 
 Addressed issue #6 with the reviewed WorkBuddy conversation-gate patch from

@@ -442,3 +442,9 @@ its local API boundary was represented by the documented fixture.
 EAC and account channels remain optional local-service integration, not native
 Magpie login implementations. GUI click flows were not exercised; CLI login
 and prompts were exercised through the same plugin host.
+# 0.9.4 release validation (2026-11-06)
+
+- `npm run check` passed.
+- `npm test` passed: 248 tests passed, 0 failed, 2 skipped.
+- Verified Trae cache-read usage accounting and WorkBuddy INTL header/system
+  adaptation with idempotence and pristine-download integrity tests.
