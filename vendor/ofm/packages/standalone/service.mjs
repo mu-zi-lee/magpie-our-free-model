@@ -100,8 +100,14 @@ export async function startStandalone({
       log: message => logger.warn?.(`our-free-model standalone: ${message}`),
     })
     management.setPort(listener.port)
-    settings.update({ standalonePort: listener.port })
-    settings.flush()
+    // A nearby fallback is a runtime recovery, not a new user preference. Do
+    // not turn a transient bind race into a permanent port ratchet; callers
+    // that explicitly request an ephemeral port still retain the selected
+    // port for the next managed connection.
+    if (requestedPort === 0 || listener.port === requestedPort) {
+      settings.update({ standalonePort: listener.port })
+      settings.flush()
+    }
 
     function scheduleRefresh() {
       clearTimeout(timer)

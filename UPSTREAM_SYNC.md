@@ -68,6 +68,17 @@ Deferred:
 
 ## Recurring Review
 
+## Issue Review - 2026-11-06
+
+Addressed issue #15: a transient bind fallback no longer overwrites the
+configured standalone port. The runtime may still publish its actual bound
+port to the live management interface; a later restart will retry the user's
+configured port. Open issue #9 (cross-process service reuse) needs a separate
+authenticated IPC/lifecycle design and remains open. #14 lacks diagnostic
+details; #13 requires a channel-bundle source update; #4/#6 depend on upstream
+WorkBuddy changes; #3 is a reported upstream schema limitation; #12 concerns
+external quota/account display behavior and needs a reproducible API response.
+
 ## 2026-11-06 Review
 
 Adopted upstream `7857b88`'s Kilo error-envelope improvement: concise provider

@@ -503,8 +503,8 @@
     {
       "path": "packages/standalone/service.mjs",
       "originalSha256": "2f5528875ab43cf43a8232ed424ab4f13a6bbb155c7afdefedebcb36d37f72e3",
-      "sha256": "6f456934e50328dcc5fde78f8dc9dcc9a09951d65dfc91fb10d1a9a165887a89",
-      "reason": "Accept an original EAC credential function and safe setup diagnostics; preserve server authorization and login flow. Select verified unchanged upstream channel business in the Worker."
+      "sha256": "59dc4dac00a58ccfb999f34ba08d6e16089b9375da9e6a96e435c885e0f6803d",
+      "reason": "Accept an original EAC credential function and safe setup diagnostics; preserve server authorization and login flow. Select verified unchanged upstream channel business in the Worker. Do not persist a temporary fallback port as the configured port."
     },
     {
       "path": "packages/standalone/eac.mjs",
