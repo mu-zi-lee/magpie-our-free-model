@@ -62,6 +62,32 @@ export function isFreeLane(modelId) {
   return /(?:^|[-_])free(?:$|[-_.])/.test(base)
 }
 
+/**
+ * A listing row's cost verdict, read from the gateway's own `cost` object.
+ *
+ * Prices arrive as a nested map and the set of priced dimensions changes, so
+ * every number below the object counts instead of a fixed key list: a new
+ * dimension must not stay invisible. `unknown` means the row disclosed no
+ * numbers at all — the caller decides whether the id's own name is evidence.
+ *
+ * @param {unknown} cost
+ * @returns {'zero'|'paid'|'unknown'}
+ */
+export function costVerdict(cost) {
+  let seen = 0
+  let zero = true
+  const walk = value => {
+    if (value === null || value === undefined || value === '') return
+    if (typeof value === 'object') { for (const item of Object.values(value)) walk(item); return }
+    const number = Number(value)
+    if (!Number.isFinite(number)) { zero = false; return }
+    seen += 1
+    if (number !== 0) zero = false
+  }
+  walk(cost)
+  return seen === 0 ? 'unknown' : zero ? 'zero' : 'paid'
+}
+
 /** Look up the baseline capacities for one model id. */
 export function capabilitiesFor(modelId) {
   const base = baseModelId(modelId)
@@ -92,16 +118,32 @@ export function displayModelName(modelId) {
 /**
  * Merge the upstream listing with the local capability table.
  *
- * @param {string[]} ids - raw upstream model ids
+ * Admission follows the listing's prices, not the id's spelling: a row priced
+ * above zero is dropped even when its id still ends in `-free`, and an id
+ * without that suffix is kept only when a refresh carries a zero-price record
+ * for it. `charged` holds ids an earlier refresh priced above zero; they stay
+ * out while the price is unstated, and a zero-price row readmits them because
+ * the fresh record beats the stale one. `admitted` holds the ids a past refresh
+ * priced at zero — a restart that only has ids cached (no prices) would
+ * otherwise drop them.
+ *
+ * @param {Array<string|{id: string, cost?: unknown}>} rows - listing rows, or ids alone
+ * @param {Set<string>} charged - ids priced above zero by an earlier refresh
+ * @param {Set<string>} admitted - ids with earlier zero-price evidence
  * @returns {Array<object>} catalog entries in listing order
  */
-export function buildCatalog(ids) {
+export function buildCatalog(rows, charged = new Set(), admitted = new Set()) {
   const seen = new Set()
   const entries = []
-  for (const raw of ids) {
-    const id = String(raw ?? '').trim()
-    if (id === '' || !isFreeLane(id)) continue
+  for (const raw of rows) {
+    const row = typeof raw === 'string' ? { id: raw } : raw
+    const id = String(row?.id ?? '').trim()
+    if (id === '') continue
     const base = baseModelId(id)
+    const verdict = costVerdict(row?.cost)
+    if (verdict === 'paid') continue
+    if (verdict !== 'zero' && charged.has(base)) continue
+    if (verdict === 'unknown' && !isFreeLane(id) && !admitted.has(base)) continue
     if (seen.has(base)) continue
     seen.add(base)
     const caps = capabilitiesFor(base)
@@ -128,6 +170,19 @@ function number(value) {
 export function parseListing(payload) {
   const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : []
   return rows.map(row => (typeof row === 'string' ? row : row?.id)).filter(id => typeof id === 'string' && id !== '')
+}
+
+/**
+ * Parse the same listing while keeping each row's prices.
+ *
+ * `parseListing` throws the price away, which is what made admission a name
+ * test; the refresh path uses this instead and hands the rows to buildCatalog.
+ */
+export function parseListingRows(payload) {
+  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : []
+  return rows
+    .map(row => (typeof row === 'string' ? { id: row } : row !== null && typeof row === 'object' ? { id: row.id, cost: row.cost } : null))
+    .filter(row => row !== null && typeof row.id === 'string' && row.id !== '')
 }
 
 // ── the co-paid lane ──────────────────────────────────────────────────────────

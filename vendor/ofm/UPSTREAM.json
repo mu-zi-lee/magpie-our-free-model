@@ -541,6 +541,18 @@
       "originalSha256": "81889f0c1d4c7a1fcf3120e9998bae3cafe4270ed6fca8d00e5e697b5e61e510",
       "sha256": "d62cc34c1b27dcb686d7f827c0684a2abc1885c6b673909d689061dbcbd1026f",
       "reason": "Expose managedModels in the management summary so a second Magpie host (CLI beside the desktop app) publishes the same capability rows the plugin runner emits."
+    },
+    {
+      "path": "src/catalog.js",
+      "originalSha256": "7f20a8589b02b30770d3dfafd4301e4a998a4f5ad5c7bb394277bb1ce4d63c11",
+      "sha256": "bd2e7da764a8ae241bf4a428ccc12f1cff03214bdf8e7851911657b7b65dc424",
+      "reason": "Admit free-lane rows on the gateway zero-price record instead of the id suffix; keep charged ids out until a zero-price refresh readmits them."
+    },
+    {
+      "path": "src/core/runtime.js",
+      "originalSha256": "163ee1de3d4d59ec48b044f8545cfab91d395db2135845603d2657c1ceed0ac0",
+      "sha256": "d07d02b60c6fe376117fd82d3544a724c4647c040cd7ad8f2db4c8a5e23d87ca",
+      "reason": "Carry the listing prices through refresh and persist the priced-at-zero/priced-above-zero id sets so admission survives a restart."
     }
   ]
 }

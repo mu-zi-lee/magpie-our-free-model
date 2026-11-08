@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { FreeModelAdapter, ROUTE_MAIN, ROUTE_REGION } from '../adapter.js'
-import { buildCatalog, buildEacCatalog, buildKiloCatalog, isEacEntry, isKiloEntry, parseListing, reviveKiloCatalog } from '../catalog.js'
+import { buildCatalog, buildEacCatalog, buildKiloCatalog, costVerdict, isEacEntry, isKiloEntry, parseListing, parseListingRows, reviveKiloCatalog } from '../catalog.js'
 import { buildAggregateCatalog, isAggregateEntry } from '../aggregate.js'
 import { buildComboCatalog, isComboEntry, normalizeCombos, pruneRotation } from '../combos.js'
 import { JsonStore, SETTINGS_INITIAL, STATS_INITIAL, STATS_VERSION, migrateStats, pruneDays, recordTurn, recordUsage } from '../store.js'
@@ -9,7 +9,7 @@ import { STATE, detectEgress, probeCatalog } from '../probe.js'
 import { CODE, getJson } from '../http.js'
 import { fetchSealedListing } from '../eac.js'
 import { fetchKiloListing } from '../kilo.js'
-import { mintRequestId, sessionForConversation } from '../upstream.js'
+import { baseModelId, mintRequestId, sessionForConversation } from '../upstream.js'
 import { createForwardCompletion, publicModelRows } from './completion.js'
 
 const FALLBACK_CATALOG = buildCatalog([
@@ -53,7 +53,13 @@ export function createModelRuntime({
   onSealedUnavailable = () => {},
   onTopology = () => {},
 }) {
-  let catalog = materializeCatalog(catalogStore.get().entries ?? [])
+  /** Ids a refresh priced above zero; kept out until a refresh prices them at zero. */
+  const chargedIds = new Set(catalogStore.get().chargedIds ?? [])
+  /** Ids a refresh priced at zero. Only ids are cached between runs, not prices,
+   *  so this is what keeps a suffix-less free id admitted while the listing is
+   *  unreachable. */
+  const zeroIds = new Set(catalogStore.get().zeroIds ?? [])
+  let catalog = materializeCatalog(catalogStore.get().entries ?? [], chargedIds, zeroIds)
   let sealedCatalog = sealedCredential() === null ? [] : buildEacCatalog(catalogStore.get().sealIds ?? [])
   let kiloCatalog = reviveKiloCatalog(catalogStore.get().kiloRows)
   /** The aggregate lane: one row per enabled provider/model the user configured.
@@ -160,20 +166,26 @@ export function createModelRuntime({
   }
 
   async function refreshCatalogOnce({ probe, force }) {
-    let ids = []
+    let rows = []
     try {
-      ids = parseListing(await fetchListing())
+      rows = parseListingRows(await fetchListing())
     } catch (error) {
       if (!disposed) logger.warn?.(`our-free-model: model listing refresh failed (${error?.message ?? error}); keeping the cached catalog`)
     }
     if (disposed) return catalog
-    if (ids.length > 0) {
-      freeCatalog = buildCatalog(ids)
-      catalogStore.update({ at: Date.now(), entries: freeCatalog.map(entry => entry.id) })
+    if (rows.length > 0) {
+      for (const row of rows) {
+        const base = baseModelId(row.id)
+        const verdict = costVerdict(row.cost)
+        if (verdict === 'paid') { chargedIds.add(base); zeroIds.delete(base) }
+        else if (verdict === 'zero') { chargedIds.delete(base); zeroIds.add(base) }
+      }
+      freeCatalog = buildCatalog(rows, chargedIds, zeroIds)
+      catalogStore.update({ at: Date.now(), entries: freeCatalog.map(entry => entry.id), chargedIds: [...chargedIds], zeroIds: [...zeroIds] })
       catalogStore.flush()
       settings.update({ catalogSyncedAt: Date.now() })
     } else {
-      freeCatalog = materializeCatalog(catalogStore.get().entries ?? [])
+      freeCatalog = materializeCatalog(catalogStore.get().entries ?? [], chargedIds, zeroIds)
     }
     await refreshSealedRoster()
     if (disposed) return catalog
@@ -346,8 +358,8 @@ export function createModelRuntime({
   }
 }
 
-function materializeCatalog(ids) {
-  const rebuilt = buildCatalog(ids)
+function materializeCatalog(ids, charged = new Set(), admitted = new Set()) {
+  const rebuilt = buildCatalog(ids, charged, admitted)
   return rebuilt.length > 0 ? rebuilt : FALLBACK_CATALOG
 }
 
