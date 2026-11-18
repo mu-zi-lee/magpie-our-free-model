@@ -74,18 +74,17 @@ export function isFreeLane(modelId) {
  * @returns {'zero'|'paid'|'unknown'}
  */
 export function costVerdict(cost) {
-  let seen = 0
-  let zero = true
-  const walk = value => {
-    if (value === null || value === undefined || value === '') return
-    if (typeof value === 'object') { for (const item of Object.values(value)) walk(item); return }
-    const number = Number(value)
-    if (!Number.isFinite(number)) { zero = false; return }
-    seen += 1
-    if (number !== 0) zero = false
+  let priced = false
+  const walk = (value, depth) => {
+    if (value == null) return true
+    if (depth > 32 || Array.isArray(value)) return false
+    if (typeof value === 'object') return Object.values(value).every(item => walk(item, depth + 1))
+    if (typeof value !== 'number' && (typeof value !== 'string' || !/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()))) return false
+    priced = true
+    return Number(value) === 0 && (typeof value === 'number' || !/[1-9]/.test(value.split(/e/i)[0]))
   }
-  walk(cost)
-  return seen === 0 ? 'unknown' : zero ? 'zero' : 'paid'
+  if (cost != null && typeof cost !== 'object') return 'paid'
+  return !walk(cost, 0) ? 'paid' : priced ? 'zero' : 'unknown'
 }
 
 /** Look up the baseline capacities for one model id. */
@@ -133,6 +132,7 @@ export function displayModelName(modelId) {
  * @returns {Array<object>} catalog entries in listing order
  */
 export function buildCatalog(rows, charged = new Set(), admitted = new Set()) {
+  const listedAsPaid = new Set(rows.filter(row => costVerdict(row?.cost) === 'paid').map(row => baseModelId(row.id)))
   const seen = new Set()
   const entries = []
   for (const raw of rows) {
@@ -141,7 +141,7 @@ export function buildCatalog(rows, charged = new Set(), admitted = new Set()) {
     if (id === '') continue
     const base = baseModelId(id)
     const verdict = costVerdict(row?.cost)
-    if (verdict === 'paid') continue
+    if (listedAsPaid.has(base)) continue
     if (verdict !== 'zero' && charged.has(base)) continue
     if (verdict === 'unknown' && !isFreeLane(id) && !admitted.has(base)) continue
     if (seen.has(base)) continue
@@ -179,10 +179,12 @@ export function parseListing(payload) {
  * test; the refresh path uses this instead and hands the rows to buildCatalog.
  */
 export function parseListingRows(payload) {
-  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : []
-  return rows
+  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : null
+  if (rows === null) return null
+  const parsed = rows
     .map(row => (typeof row === 'string' ? { id: row } : row !== null && typeof row === 'object' ? { id: row.id, cost: row.cost } : null))
-    .filter(row => row !== null && typeof row.id === 'string' && row.id !== '')
+    .filter(row => row !== null && typeof row.id === 'string' && baseModelId(row.id) !== '')
+  return rows.length > 0 && parsed.length === 0 ? null : parsed
 }
 
 // ── the co-paid lane ──────────────────────────────────────────────────────────

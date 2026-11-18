@@ -49,18 +49,17 @@ const PRICE_HELPERS = `
  * @returns {'zero'|'paid'|'unknown'}
  */
 export function costVerdict(cost) {
-  let seen = 0
-  let zero = true
-  const walk = value => {
-    if (value === null || value === undefined || value === '') return
-    if (typeof value === 'object') { for (const item of Object.values(value)) walk(item); return }
-    const number = Number(value)
-    if (!Number.isFinite(number)) { zero = false; return }
-    seen += 1
-    if (number !== 0) zero = false
+  let priced = false
+  const walk = (value, depth) => {
+    if (value == null) return true
+    if (depth > 32 || Array.isArray(value)) return false
+    if (typeof value === 'object') return Object.values(value).every(item => walk(item, depth + 1))
+    if (typeof value !== 'number' && (typeof value !== 'string' || !/^[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:e[+-]?\\d+)?$/i.test(value.trim()))) return false
+    priced = true
+    return Number(value) === 0 && (typeof value === 'number' || !/[1-9]/.test(value.split(/e/i)[0]))
   }
-  walk(cost)
-  return seen === 0 ? 'unknown' : zero ? 'zero' : 'paid'
+  if (cost != null && typeof cost !== 'object') return 'paid'
+  return !walk(cost, 0) ? 'paid' : priced ? 'zero' : 'unknown'
 }`;
 
 const BUILD_HEAD_OLD = `/**
@@ -97,6 +96,7 @@ const BUILD_HEAD_NEW = `/**
  * @returns {Array<object>} catalog entries in listing order
  */
 export function buildCatalog(rows, charged = new Set(), admitted = new Set()) {
+  const listedAsPaid = new Set(rows.filter(row => costVerdict(row?.cost) === 'paid').map(row => baseModelId(row.id)))
   const seen = new Set()
   const entries = []
   for (const raw of rows) {
@@ -105,7 +105,7 @@ export function buildCatalog(rows, charged = new Set(), admitted = new Set()) {
     if (id === '') continue
     const base = baseModelId(id)
     const verdict = costVerdict(row?.cost)
-    if (verdict === 'paid') continue
+    if (listedAsPaid.has(base)) continue
     if (verdict !== 'zero' && charged.has(base)) continue
     if (verdict === 'unknown' && !isFreeLane(id) && !admitted.has(base)) continue
     if (seen.has(base)) continue
@@ -125,10 +125,12 @@ const PARSE_ROWS = `
  * test; the refresh path uses this instead and hands the rows to buildCatalog.
  */
 export function parseListingRows(payload) {
-  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : []
-  return rows
+  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : null
+  if (rows === null) return null
+  const parsed = rows
     .map(row => (typeof row === 'string' ? { id: row } : row !== null && typeof row === 'object' ? { id: row.id, cost: row.cost } : null))
-    .filter(row => row !== null && typeof row.id === 'string' && row.id !== '')
+    .filter(row => row !== null && typeof row.id === 'string' && baseModelId(row.id) !== '')
+  return rows.length > 0 && parsed.length === 0 ? null : parsed
 }`;
 
 const IMPORT_OLD = "import { buildCatalog, buildEacCatalog, buildKiloCatalog, isEacEntry, isKiloEntry, parseListing, reviveKiloCatalog } from '../catalog.js'";
@@ -140,12 +142,12 @@ const UPSTREAM_IMPORT_NEW = "import { baseModelId, mintRequestId, sessionForConv
 const CATALOG_INIT_OLD = `  let catalog = materializeCatalog(catalogStore.get().entries ?? [])
   let sealedCatalog =`;
 const CATALOG_INIT_NEW = `  /** Ids a refresh priced above zero; kept out until a refresh prices them at zero. */
-  const chargedIds = new Set(catalogStore.get().chargedIds ?? [])
+  const chargedIds = new Set(Array.isArray(catalogStore.get().chargedIds) ? catalogStore.get().chargedIds : [])
   /** Ids a refresh priced at zero. Only ids are cached between runs, not prices,
    *  so this is what keeps a suffix-less free id admitted while the listing is
    *  unreachable. */
-  const zeroIds = new Set(catalogStore.get().zeroIds ?? [])
-  let catalog = materializeCatalog(catalogStore.get().entries ?? [], chargedIds, zeroIds)
+  const zeroIds = new Set(Array.isArray(catalogStore.get().zeroIds) ? catalogStore.get().zeroIds : [])
+  let catalog = materializeCatalog(catalogStore.get(), chargedIds, zeroIds)
   let sealedCatalog =`;
 
 const REFRESH_OLD = `    let ids = []
@@ -163,35 +165,39 @@ const REFRESH_OLD = `    let ids = []
     } else {
       freeCatalog = materializeCatalog(catalogStore.get().entries ?? [])
     }`;
-const REFRESH_NEW = `    let rows = []
+const REFRESH_NEW = `    let rows = null
     try {
       rows = parseListingRows(await fetchListing())
     } catch (error) {
       if (!disposed) logger.warn?.(\`our-free-model: model listing refresh failed (\${error?.message ?? error}); keeping the cached catalog\`)
     }
     if (disposed) return catalog
-    if (rows.length > 0) {
+    if (rows !== null) {
+      const paidThisRefresh = new Set()
       for (const row of rows) {
         const base = baseModelId(row.id)
         const verdict = costVerdict(row.cost)
-        if (verdict === 'paid') { chargedIds.add(base); zeroIds.delete(base) }
+        if (verdict === 'paid') paidThisRefresh.add(base)
         else if (verdict === 'zero') { chargedIds.delete(base); zeroIds.add(base) }
       }
+      for (const id of paidThisRefresh) { chargedIds.add(id); zeroIds.delete(id) }
       freeCatalog = buildCatalog(rows, chargedIds, zeroIds)
       catalogStore.update({ at: Date.now(), entries: freeCatalog.map(entry => entry.id), chargedIds: [...chargedIds], zeroIds: [...zeroIds] })
       catalogStore.flush()
       settings.update({ catalogSyncedAt: Date.now() })
     } else {
-      freeCatalog = materializeCatalog(catalogStore.get().entries ?? [], chargedIds, zeroIds)
+      freeCatalog = materializeCatalog(catalogStore.get(), chargedIds, zeroIds)
     }`;
 
 const MATERIALIZE_OLD = `function materializeCatalog(ids) {
   const rebuilt = buildCatalog(ids)
   return rebuilt.length > 0 ? rebuilt : FALLBACK_CATALOG
 }`;
-const MATERIALIZE_NEW = `function materializeCatalog(ids, charged = new Set(), admitted = new Set()) {
+const MATERIALIZE_NEW = `function materializeCatalog(snapshot, charged, admitted) {
+  const ids = Array.isArray(snapshot.entries) ? snapshot.entries : []
   const rebuilt = buildCatalog(ids, charged, admitted)
-  return rebuilt.length > 0 ? rebuilt : FALLBACK_CATALOG
+  if (rebuilt.length > 0 || snapshot.at > 0) return rebuilt
+  return FALLBACK_CATALOG.filter(entry => !charged.has(baseModelId(entry.id)))
 }`;
 
 export function patchFreeLaneCatalog(source) {

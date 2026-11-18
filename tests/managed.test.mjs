@@ -116,7 +116,7 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     if (pathname.endsWith('/pool')) return json({ ok: true, inflight: 1 });
     if (pathname.endsWith('/models')) return json({ data: req.headers['x-ofm-signature']
       ? [{ id: 'fixture-eac-model' }] : pathname === '/models' ? [{ id: 'fixture/free', isFree: true }]
-      : freeListing.map(id => ({ id })) });
+      : freeListing.map(row => typeof row === 'string' ? { id: row } : row) });
     if (pathname.includes('/console/enterprises/') || pathname.endsWith('/v3/config')) return json({ data: {
       models: [{ id: 'fixture-free', name: 'Fixture', credits: 'x0', maxInputTokens: 128000,
         maxOutputTokens: 4096, supportsImages: true, reasoning: { supportedEfforts: ['low', 'high'], defaultEffort: 'high' } }],
@@ -303,6 +303,23 @@ test('real bundled service: console handoff, channels, EAC, requests, key rotati
     const disabled = await decide(question('jev-1.13-free'));
     assert.equal(disabled.status, 404, await disabled.text());
     assert.equal(zen.length, 1);
+  });
+  await t.test('manual refresh publishes price-aware changes and clears an empty Zen listing', async () => {
+    const price = value => ({ text: { input: { price: value }, output: { price: value } } });
+    freeListing.splice(0, freeListing.length, { id: 'mimo-v2.6-flash-free', cost: price(1) }, { id: 'fixture-zero', cost: price(0) });
+    assert.equal((await api('/api/management/models/refresh', {})).status, 200);
+    const rows = await plugin.provider.models(provider, { auth });
+    assert.ok(rows['fixture-zero']);
+    assert.equal(rows['mimo-v2.6-flash-free'], undefined);
+    freeListing.length = 0;
+    assert.equal((await api('/api/management/models/refresh', {})).status, 200);
+    assert.equal((await plugin.provider.models(provider, { auth }))['fixture-zero'], undefined);
+    freeListing.push('mimo-v2.6-flash-free');
+    assert.equal((await api('/api/management/models/refresh', {})).status, 200);
+    assert.equal((await plugin.provider.models(provider, { auth }))['mimo-v2.6-flash-free'], undefined);
+    freeListing[0] = { id: 'mimo-v2.6-flash-free', cost: price(0) };
+    assert.equal((await api('/api/management/models/refresh', {})).status, 200);
+    assert.ok((await plugin.provider.models(provider, { auth }))['mimo-v2.6-flash-free']);
   });
   await t.test('real channel inference retains tools and strips downstream secrets', async () => {
     const response = await call('buddy/fixture-free', { tools: [{ type: 'function', function: { name: 'lookup', parameters: {} } }] });

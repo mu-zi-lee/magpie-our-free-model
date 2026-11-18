@@ -54,12 +54,12 @@ export function createModelRuntime({
   onTopology = () => {},
 }) {
   /** Ids a refresh priced above zero; kept out until a refresh prices them at zero. */
-  const chargedIds = new Set(catalogStore.get().chargedIds ?? [])
+  const chargedIds = new Set(Array.isArray(catalogStore.get().chargedIds) ? catalogStore.get().chargedIds : [])
   /** Ids a refresh priced at zero. Only ids are cached between runs, not prices,
    *  so this is what keeps a suffix-less free id admitted while the listing is
    *  unreachable. */
-  const zeroIds = new Set(catalogStore.get().zeroIds ?? [])
-  let catalog = materializeCatalog(catalogStore.get().entries ?? [], chargedIds, zeroIds)
+  const zeroIds = new Set(Array.isArray(catalogStore.get().zeroIds) ? catalogStore.get().zeroIds : [])
+  let catalog = materializeCatalog(catalogStore.get(), chargedIds, zeroIds)
   let sealedCatalog = sealedCredential() === null ? [] : buildEacCatalog(catalogStore.get().sealIds ?? [])
   let kiloCatalog = reviveKiloCatalog(catalogStore.get().kiloRows)
   /** The aggregate lane: one row per enabled provider/model the user configured.
@@ -166,26 +166,28 @@ export function createModelRuntime({
   }
 
   async function refreshCatalogOnce({ probe, force }) {
-    let rows = []
+    let rows = null
     try {
       rows = parseListingRows(await fetchListing())
     } catch (error) {
       if (!disposed) logger.warn?.(`our-free-model: model listing refresh failed (${error?.message ?? error}); keeping the cached catalog`)
     }
     if (disposed) return catalog
-    if (rows.length > 0) {
+    if (rows !== null) {
+      const paidThisRefresh = new Set()
       for (const row of rows) {
         const base = baseModelId(row.id)
         const verdict = costVerdict(row.cost)
-        if (verdict === 'paid') { chargedIds.add(base); zeroIds.delete(base) }
+        if (verdict === 'paid') paidThisRefresh.add(base)
         else if (verdict === 'zero') { chargedIds.delete(base); zeroIds.add(base) }
       }
+      for (const id of paidThisRefresh) { chargedIds.add(id); zeroIds.delete(id) }
       freeCatalog = buildCatalog(rows, chargedIds, zeroIds)
       catalogStore.update({ at: Date.now(), entries: freeCatalog.map(entry => entry.id), chargedIds: [...chargedIds], zeroIds: [...zeroIds] })
       catalogStore.flush()
       settings.update({ catalogSyncedAt: Date.now() })
     } else {
-      freeCatalog = materializeCatalog(catalogStore.get().entries ?? [], chargedIds, zeroIds)
+      freeCatalog = materializeCatalog(catalogStore.get(), chargedIds, zeroIds)
     }
     await refreshSealedRoster()
     if (disposed) return catalog
@@ -358,9 +360,11 @@ export function createModelRuntime({
   }
 }
 
-function materializeCatalog(ids, charged = new Set(), admitted = new Set()) {
+function materializeCatalog(snapshot, charged, admitted) {
+  const ids = Array.isArray(snapshot.entries) ? snapshot.entries : []
   const rebuilt = buildCatalog(ids, charged, admitted)
-  return rebuilt.length > 0 ? rebuilt : FALLBACK_CATALOG
+  if (rebuilt.length > 0 || snapshot.at > 0) return rebuilt
+  return FALLBACK_CATALOG.filter(entry => !charged.has(baseModelId(entry.id)))
 }
 
 export function computeMembership(catalog, availabilitySnapshot, settings) {

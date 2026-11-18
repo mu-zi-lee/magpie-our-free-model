@@ -86,6 +86,19 @@ Deferred:
 
 ## Recurring Review
 
+## 0.9.5 - 2026-11-18
+
+- Merged PR #17: use published Zen prices when deciding which models belong in
+  the free catalog. Conflicting or malformed prices do not count as free, and
+  previously charged models stay excluded until explicitly listed at zero cost.
+- For issue #18, distinguish an empty Zen listing from a failed refresh. Preserve
+  the empty catalog across restarts and document the existing manual refresh
+  action. The Magpie host still controls when it reloads provider models.
+- Reviewed upstream through `ba266c6e268bc5fb9227fb1353149e4a99f77739`.
+  Did not replace the pinned runtime or its downloads: newer desktop, channel,
+  and plugin platform changes require separate compatibility review. The two
+  catalog adaptations and their hashes are recorded in `vendor/ofm/UPSTREAM.json`.
+
 ## 0.9.4 - 2026-11-06
 
 Issue-focused maintenance release.

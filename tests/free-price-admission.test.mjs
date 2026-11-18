@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { buildCatalog, costVerdict, isFreeLane, parseListingRows } from '../vendor/ofm/src/catalog.js';
+import { createModelRuntime, createRuntimeStores } from '../vendor/ofm/src/core/runtime.js';
 
 // The gateway's `cost` object is nested and gains dimensions over time; the
 // fixture mirrors the live Zen shape (text/cache/output prices) rather than a
@@ -18,6 +22,10 @@ test('costVerdict reads nested prices, not a fixed key list', () => {
   assert.equal(costVerdict(undefined), 'unknown');
   assert.equal(costVerdict({}), 'unknown');
   assert.equal(costVerdict(null), 'unknown');
+  assert.equal(costVerdict({ price: '0e-999' }), 'zero');
+  assert.equal(costVerdict({ price: '1e-999' }), 'paid');
+  assert.equal(costVerdict({ price: false }), 'paid');
+  assert.equal(costVerdict({ price: ' ' }), 'paid');
 });
 
 test('parseListingRows keeps ids and prices and drops junk rows', () => {
@@ -25,6 +33,8 @@ test('parseListingRows keeps ids and prices and drops junk rows', () => {
   assert.deepEqual(parseListingRows(payload), [{ id: 'a-free', cost: zero }, { id: 'b', cost: undefined }, { id: 'c' }]);
   assert.deepEqual(parseListingRows({ models: [{ id: 'm' }] }), [{ id: 'm', cost: undefined }]);
   assert.deepEqual(parseListingRows([]), []);
+  assert.equal(parseListingRows({ error: 'unavailable' }), null);
+  assert.equal(parseListingRows({ data: [null] }), null);
 });
 
 test('admission follows the price, not the id spelling', () => {
@@ -60,6 +70,29 @@ test('a repeated id is listed once', () => {
     { id: 'big-pickle', cost: zero },
   ]);
   assert.deepEqual(ids(catalog), ['big-pickle']);
+});
+
+test('conflicting duplicate prices exclude the model in either order', () => {
+  const rows = [{ id: 'big-pickle', cost: zero }, { id: 'big-pickle(high)', cost: paid }];
+  assert.deepEqual(buildCatalog(rows), []);
+  assert.deepEqual(buildCatalog(rows.toReversed()), []);
+});
+
+test('a persisted empty catalog does not restore fallback models on restart', t => {
+  const dataDir = mkdtempSync(join(tmpdir(), 'ofm-catalog-'));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const stores = createRuntimeStores({ dataDir });
+  stores.catalogStore.update({ at: 1, entries: [], chargedIds: ['mimo-v2.6-flash-free'] });
+  stores.catalogStore.flush();
+  stores.dispose();
+  const restartedStores = createRuntimeStores({ dataDir });
+  const runtime = createModelRuntime(restartedStores);
+  try {
+    assert.deepEqual(runtime.catalog, []);
+  } finally {
+    runtime.dispose();
+    restartedStores.dispose();
+  }
 });
 
 test('isFreeLane keeps the name test for rows that disclose no prices', () => {

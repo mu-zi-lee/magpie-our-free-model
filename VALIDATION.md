@@ -442,6 +442,14 @@ its local API boundary was represented by the documented fixture.
 EAC and account channels remain optional local-service integration, not native
 Magpie login implementations. GUI click flows were not exercised; CLI login
 and prompts were exercised through the same plugin host.
+# 0.9.5 release validation (2026-11-18)
+
+- `npm run check` and `npm test` on Node 24: 258 passed, 0 failed, 2 skipped.
+- Loopback integration exercises the authorized manual refresh endpoint and
+  confirms that Magpie discovery reflects paid-to-free changes and an empty Zen
+  listing. Unit tests cover malformed and conflicting costs and restart behavior.
+- No live provider accounts or live Magpie UI were used for this validation.
+
 # 0.9.4 release validation (2026-11-06)
 
 - `npm run check` passed.
