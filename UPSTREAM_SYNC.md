@@ -86,6 +86,23 @@ Deferred:
 
 ## Recurring Review
 
+## 0.9.6 - 2026-11-21
+
+Reviewed upstream through `e05742d1700d3a8cf0aeae54ce7099ca461ad534`
+(v2.8.9 content release `be4aa211a8878a9a2e41619b336bdc2464b2251d`).
+
+- Selectively ported #829: complete tool blocks now produce Chat Completions
+  streaming frames even when a channel sends no tool-call deltas. Existing
+  streamed calls are not emitted twice, sequential indices and held call IDs
+  are retained, and rejected fingerprint-tool slots stay rejected.
+- The fail-closed transformation is in `scripts/ofm-tool-block-patch.mjs` and
+  registered in the vendor script; the adapted forward-file hash is updated.
+- No snapshot or channel/EAC download was replaced. Their original pin, byte
+  sizes, SHA-256 values, licenses, and authentication gates remain unchanged.
+- Deferred desktop, feedback-page, account rotation and generated channel
+  bundle changes. The current snapshot does not contain the new feedback
+  verification-URL feature. No claim is made that all upstream fixes were ported.
+
 ## 0.9.5 - 2026-11-18
 
 - Merged PR #17: use published Zen prices when deciding which models belong in

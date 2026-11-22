@@ -10,6 +10,7 @@ import { patchEacDiagnostics, patchEacSetupUi } from './ofm-eac-setup-patch.mjs'
 import { applyTraeUsagePatch } from '../src/trae-usage-patch.mjs';
 import { applyWorkbuddyConversationPatch } from '../src/workbuddy-conversation-patch.mjs';
 import { patchFreeLaneCatalog, patchFreeLaneRuntime } from './ofm-free-price-patch.mjs';
+import { patchCompletedToolBlocks } from './ofm-tool-block-patch.mjs';
 
 const pin = '9e6121802ab5b87e379a07141e94e36482809147';
 const root = path.resolve(process.argv[2] || '');
@@ -60,6 +61,7 @@ for (const [file, patch, reason] of [
     .map(file => [file, source => patchChannelSource(file, source), 'Select verified unchanged upstream channel business in the Worker.'
       + (file.endsWith('/worker.mjs') ? ' Accept harness messages/tools from the native Anthropic gateway; retain model enablement and effort/budget normalization.' : '')]),
   ['src/catalog.js', patchFreeLaneCatalog, 'Admit free-lane rows on the gateway zero-price record instead of the id suffix; keep charged ids out until a zero-price refresh readmits them.'],
+  ['src/forward.js', patchCompletedToolBlocks, 'Port upstream be4aa21 tool block-end streaming support without duplicating deltas or bypassing decoy filtering.'],
   ['src/core/runtime.js', patchFreeLaneRuntime, 'Carry the listing prices through refresh and persist the priced-at-zero/priced-above-zero id sets so admission survives a restart.'],
 ]) {
   const target = path.join(dest, file);

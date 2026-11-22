@@ -770,6 +770,15 @@ function createToolWire(body) {
       held.set(blockIndex, parked)
       return { kind: 'drop' }
     },
+    admitBlockEnd(block, blockIndex) {
+      if (classified.get(blockIndex) === false) return { kind: 'drop' }
+      if (typeof block.name !== 'string' || block.name === '' || !this.executable(block.name)) return { kind: 'drop' }
+      classified.set(blockIndex, true)
+      const parked = held.get(blockIndex)
+      held.delete(blockIndex)
+      return { kind: 'forward', openAiIndex: this.indexOf(blockIndex), first: true,
+        id: block.id || parked?.id, name: block.name, args: typeof block.arguments === 'string' ? block.arguments : '' }
+    },
   }
 }
 
@@ -824,6 +833,19 @@ async function chatCompletions(req, res, complete, options = {}) {
 
   openStreamHeaders(res, options.heartbeatMs)
   sendSse(res, { id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { role: 'assistant', content: '' }, finish_reason: null }] })
+  const opened = new Set()
+  const emitTool = action => {
+    if (action.kind === 'drop') return
+    if (action.first) {
+      opened.add(action.openAiIndex)
+      sendSse(res, { id, object: 'chat.completion.chunk', created, model,
+        choices: [{ index: 0, delta: { tool_calls: [{ index: action.openAiIndex, id: action.id,
+          type: 'function', function: { name: action.name, arguments: '' } }] }, finish_reason: null }] })
+    }
+    if (action.args) sendSse(res, { id, object: 'chat.completion.chunk', created, model,
+      choices: [{ index: 0, delta: { tool_calls: [{ index: action.openAiIndex,
+        function: { arguments: action.args } }] }, finish_reason: null }] })
+  }
   const outcome = await complete({ model, openAi: body }, (chunk) => {
     if (res.destroyed) return
     if (chunk.type === 'text-delta') {
@@ -835,18 +857,12 @@ async function chatCompletions(req, res, complete, options = {}) {
       return
     }
     if (chunk.type === 'tool-call-delta') {
-      const action = tools.admit(chunk)
-      if (action.kind === 'drop') return
-        if (action.first) sendSse(res, {
-          id, object: 'chat.completion.chunk', created, model,
-          choices: [{ index: 0, delta: { tool_calls: [{
-            index: action.openAiIndex, id: action.id, type: 'function',
-            function: { name: action.name ?? '', arguments: '' },
-          }] }, finish_reason: null }],
-        })
-      if (action.args) {
-        sendSse(res, { id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { tool_calls: [{ index: action.openAiIndex, function: { arguments: action.args } }] }, finish_reason: null }] })
-      }
+      emitTool(tools.admit(chunk))
+      return
+    }
+    if (chunk.type === 'block-end' && chunk.block?.type === 'tool-call') {
+      const action = tools.admitBlockEnd(chunk.block, chunk.index)
+      if (action.kind === 'forward' && !opened.has(action.openAiIndex)) emitTool(action)
       return
     }
     if (chunk.type === 'usage') {

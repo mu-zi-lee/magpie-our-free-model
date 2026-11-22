@@ -442,6 +442,21 @@ its local API boundary was represented by the documented fixture.
 EAC and account channels remain optional local-service integration, not native
 Magpie login implementations. GUI click flows were not exercised; CLI login
 and prompts were exercised through the same plugin host.
+# 0.9.6 release validation (2026-11-21)
+
+- `npm run check`; `npm test`: 265 passed, 0 failed, 2 skipped on Node 24.
+- Seven loopback forward-server regressions cover block-only calls, sequential
+  indices, duplicate blocks after deltas, held arguments/IDs, and fingerprint
+  decoy filtering including rejected-slot name changes.
+- Verified the adaptation against the previous committed forward-file bytes
+  and verified every declared vendor hash. No real provider credentials used.
+- One full run hit a managed-service startup timeout while unrelated tests also
+  took roughly 423 seconds. Targeted rerun: 29 passed; subsequent full rerun:
+  265 passed in 2.3 seconds. The transient stall's cause was not established;
+  no deadlines were relaxed to make it pass.
+- Live Magpie UI/provider-account verification and the two optional original
+  channel-source tests were not run.
+
 # 0.9.5 release validation (2026-11-18)
 
 - `npm run check` and `npm test` on Node 24: 258 passed, 0 failed, 2 skipped.
