@@ -48,5 +48,50 @@ export function patchCompletedToolBlocks(source) {
     if (source.split(before).length !== 2) throw new Error('Completed-tool patch anchor changed');
     source = source.replace(before, () => after);
   }
+  return patchFinalToolArguments(source);
+}
+
+// Port upstream 0512bed (#920) without replacing the newer platform runtime.
+export function patchFinalToolArguments(source) {
+  const edits = [
+    ["  const opened = new Set()\n  const emitTool = action => {", `  const opened = new Set()
+  const forwardedArgs = new Map()
+  let toolArgsTruncated = false
+  const emitTool = action => {`],
+    ["    if (action.args) sendSse(res, { id, object: 'chat.completion.chunk', created, model,", `    if (action.args) forwardedArgs.set(action.openAiIndex, (forwardedArgs.get(action.openAiIndex) ?? '') + action.args)
+    if (action.args) sendSse(res, { id, object: 'chat.completion.chunk', created, model,`],
+    ["      if (action.kind === 'forward' && !opened.has(action.openAiIndex)) emitTool(action)", `      if (action.kind === 'forward') {
+        const sent = forwardedArgs.get(action.openAiIndex) ?? ''
+        if (!action.args.startsWith(sent)) { toolArgsTruncated = true; return }
+        emitTool({ ...action, first: !opened.has(action.openAiIndex), args: action.args.slice(sent.length) })
+      }`],
+    ["  const calls = executableCalls(outcome, tools)\n  const suppressed = suppressedOnlyNote(outcome, calls)", `  const actualArgsCut = outcome.truncated === true && [...forwardedArgs.values()].some(argumentsCutMidway)
+  const wireOutcome = toolArgsTruncated || actualArgsCut ? { ...outcome, toolCalls: [], truncated: true } : outcome
+  const calls = executableCalls(wireOutcome, tools)
+  const suppressed = suppressedOnlyNote(wireOutcome, calls)`],
+    ["choices: [{ index: 0, delta: {}, finish_reason: calls.length ? 'tool_calls' : outcome.truncated ? 'length' : 'stop' }]", "choices: [{ index: 0, delta: {}, finish_reason: calls.length ? 'tool_calls' : wireOutcome.truncated ? 'length' : 'stop' }]"],
+    ["/** Per-request tool-wire state: harness block index → OpenAI tool index. */", `// Structural incompleteness is a truncation; schema errors remain tool errors.
+function argumentsCutMidway(raw) {
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (const ch of raw) {
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === '\\\\') escaped = true
+      else if (ch === '"') inString = false
+    } else if (ch === '"') inString = true
+    else if (ch === '{' || ch === '[') depth += 1
+    else if (ch === '}' || ch === ']') depth -= 1
+  }
+  return inString || depth !== 0
+}
+
+/** Per-request tool-wire state: harness block index → OpenAI tool index. */`],
+  ];
+  for (const [before, after] of edits) {
+    if (source.split(before).length !== 2) throw new Error('Final-tool-arguments patch anchor changed');
+    source = source.replace(before, () => after);
+  }
   return source;
 }

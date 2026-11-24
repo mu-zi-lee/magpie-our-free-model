@@ -467,8 +467,8 @@
     {
       "path": "src/forward.js",
       "originalSha256": "d99a72bd01989018d7264e93957089be76e874493268840909570ce0d7765882",
-      "sha256": "bf0cc44036a0ad2061380bae2b2cf12fb1c011191c5e08cb4a48219dc5a4cfa8",
-      "reason": "Adopt upstream Responses sequence numbering and valid streamed tool-call deltas. Port upstream be4aa21 tool block-end streaming support without duplicating deltas or bypassing decoy filtering."
+      "sha256": "e083a84f345ba727a910c62469402576737df9746c4a77840803166bce78c585",
+      "reason": "Adopt upstream Responses sequence numbering and valid streamed tool-call deltas. Port upstream be4aa21 tool block-end streaming support without duplicating deltas or bypassing decoy filtering. Track actually forwarded tool arguments, append only final-block suffixes, and report conflicting or incomplete parallel calls as truncated (upstream 0512bed)."
     },
     {
       "path": "src/probe.js",

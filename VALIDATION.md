@@ -442,6 +442,18 @@ its local API boundary was represented by the documented fixture.
 EAC and account channels remain optional local-service integration, not native
 Magpie login implementations. GUI click flows were not exercised; CLI login
 and prompts were exercised through the same plugin host.
+# 0.9.7 release validation (2026-11-24)
+
+- `npm run check` passed; `npm test`: 272 passed, 0 failed, 2 skipped on Node 24.
+- Added seven regressions for name-only tool deltas, partial argument suffixes,
+  conflicting final arguments, parallel truncation, escaped strings, and sparse
+  slot isolation. Four new cases failed against 0.9.6 before the fix.
+- Both the complete vendor patch and the incremental port reproduce the exact
+  committed forward-file bytes; reapplying fails closed. All vendor hashes match.
+- No real provider credentials, live Magpie UI, or optional original-channel
+  source fixtures were used. This update does not resolve the reported login
+  handoff problem in issue #19.
+
 # 0.9.6 release validation (2026-11-21)
 
 - `npm run check`; `npm test`: 265 passed, 0 failed, 2 skipped on Node 24.

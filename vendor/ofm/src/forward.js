@@ -712,6 +712,23 @@ function openStreamHeaders(res, heartbeatMs = SSE_HEARTBEAT_MS) {
   startHeartbeat(res, heartbeatMs)
 }
 
+// Structural incompleteness is a truncation; schema errors remain tool errors.
+function argumentsCutMidway(raw) {
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (const ch of raw) {
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === '\\') escaped = true
+      else if (ch === '"') inString = false
+    } else if (ch === '"') inString = true
+    else if (ch === '{' || ch === '[') depth += 1
+    else if (ch === '}' || ch === ']') depth -= 1
+  }
+  return inString || depth !== 0
+}
+
 /** Per-request tool-wire state: harness block index → OpenAI tool index. */
 function createToolWire(body) {
   // The caller's own tool names, spelled as they declared them. A call whose
@@ -834,6 +851,8 @@ async function chatCompletions(req, res, complete, options = {}) {
   openStreamHeaders(res, options.heartbeatMs)
   sendSse(res, { id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { role: 'assistant', content: '' }, finish_reason: null }] })
   const opened = new Set()
+  const forwardedArgs = new Map()
+  let toolArgsTruncated = false
   const emitTool = action => {
     if (action.kind === 'drop') return
     if (action.first) {
@@ -842,6 +861,7 @@ async function chatCompletions(req, res, complete, options = {}) {
         choices: [{ index: 0, delta: { tool_calls: [{ index: action.openAiIndex, id: action.id,
           type: 'function', function: { name: action.name, arguments: '' } }] }, finish_reason: null }] })
     }
+    if (action.args) forwardedArgs.set(action.openAiIndex, (forwardedArgs.get(action.openAiIndex) ?? '') + action.args)
     if (action.args) sendSse(res, { id, object: 'chat.completion.chunk', created, model,
       choices: [{ index: 0, delta: { tool_calls: [{ index: action.openAiIndex,
         function: { arguments: action.args } }] }, finish_reason: null }] })
@@ -862,7 +882,11 @@ async function chatCompletions(req, res, complete, options = {}) {
     }
     if (chunk.type === 'block-end' && chunk.block?.type === 'tool-call') {
       const action = tools.admitBlockEnd(chunk.block, chunk.index)
-      if (action.kind === 'forward' && !opened.has(action.openAiIndex)) emitTool(action)
+      if (action.kind === 'forward') {
+        const sent = forwardedArgs.get(action.openAiIndex) ?? ''
+        if (!action.args.startsWith(sent)) { toolArgsTruncated = true; return }
+        emitTool({ ...action, first: !opened.has(action.openAiIndex), args: action.args.slice(sent.length) })
+      }
       return
     }
     if (chunk.type === 'usage') {
@@ -884,8 +908,10 @@ async function chatCompletions(req, res, complete, options = {}) {
   // filter: reporting `tool_calls` beside no callable tool — or beside one the
   // client cannot run — is how the truncation loop used to come back by the
   // streaming door.
-  const calls = executableCalls(outcome, tools)
-  const suppressed = suppressedOnlyNote(outcome, calls)
+  const actualArgsCut = outcome.truncated === true && [...forwardedArgs.values()].some(argumentsCutMidway)
+  const wireOutcome = toolArgsTruncated || actualArgsCut ? { ...outcome, toolCalls: [], truncated: true } : outcome
+  const calls = executableCalls(wireOutcome, tools)
+  const suppressed = suppressedOnlyNote(wireOutcome, calls)
   if (suppressed !== null) {
     // Same reasoning as the `outcome.error` branch above: the status line is
     // spent, so the only honest place left for the explanation is the stream.
@@ -896,7 +922,7 @@ async function chatCompletions(req, res, complete, options = {}) {
   }
   sendSse(res, {
     id, object: 'chat.completion.chunk', created, model,
-    choices: [{ index: 0, delta: {}, finish_reason: calls.length ? 'tool_calls' : outcome.truncated ? 'length' : 'stop' }],
+    choices: [{ index: 0, delta: {}, finish_reason: calls.length ? 'tool_calls' : wireOutcome.truncated ? 'length' : 'stop' }],
   })
   res.write('data: [DONE]\n\n')
   res.end()

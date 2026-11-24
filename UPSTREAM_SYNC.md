@@ -86,6 +86,21 @@ Deferred:
 
 ## Recurring Review
 
+## 0.9.7 - 2026-11-24
+
+Reviewed upstream through `8f3182b78938344436cc50c34dbfe947136cce9f`.
+Selectively ported `0512bed8003a140dc4df8b650a3be79e1736b10b` (#920):
+track argument bytes actually sent to each streamed tool, append only the
+unseen suffix from the completed block, and finish as `length` when the final
+arguments conflict or a parallel tool remains structurally incomplete at the
+token ceiling. Existing decoy filtering and authorization remain unchanged.
+
+Extended the reproducible completed-tool patch and updated the adapted
+forward-file hash. The runtime snapshot pin and original download byte sizes,
+SHA-256 hashes, source inventory and licenses are unchanged: no pristine download
+was replaced. Deferred DSH peer-admission, bridge-provider, UI and generated
+channel changes rather than importing a new platform runtime wholesale.
+
 ## 0.9.6 - 2026-11-21
 
 Reviewed upstream through `e05742d1700d3a8cf0aeae54ce7099ca461ad534`
