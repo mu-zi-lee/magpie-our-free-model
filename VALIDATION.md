@@ -442,6 +442,18 @@ its local API boundary was represented by the documented fixture.
 EAC and account channels remain optional local-service integration, not native
 Magpie login implementations. GUI click flows were not exercised; CLI login
 and prompts were exercised through the same plugin host.
+# 0.9.8 release validation (2026-11-27)
+
+- `npm run check` passed; `npm test`: 280 passed, 0 failed, 2 skipped on Node 24.
+- Eight pure-function regressions exercise tool-schema fields named `data` and
+  `image_url`, ordinary data, blob URLs, three inline-image shapes, exact budget
+  equality, large checkpoints and unknown context sizes. Three tests failed on
+  the previous code and all eight pass after the port.
+- Verified the exact replacement against upstream 36734a8, original source hash,
+  patch reproduction, fail-closed anchors and the full vendor hash inventory.
+- No live provider accounts or Magpie UI were used. The optional original-channel
+  fixtures remain skipped; EAC migration/connectivity has not been validated.
+
 # 0.9.7 release validation (2026-11-24)
 
 - `npm run check` passed; `npm test`: 272 passed, 0 failed, 2 skipped on Node 24.

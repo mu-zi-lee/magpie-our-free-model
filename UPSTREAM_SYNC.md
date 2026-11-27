@@ -86,6 +86,23 @@ Deferred:
 
 ## Recurring Review
 
+## 0.9.8 - 2026-11-27
+
+Reviewed upstream through `e72860ed266851465516e761fa021cfbccb0be87`.
+Selectively ported `36734a8fadb44c7094f9ddbb399fd72c9ff4b481`: continuation
+size estimation now counts ordinary tool-schema fields named `data` or
+`image_url`. Only inline image values are discounted. Context thresholds,
+continuation policy and call sites are unchanged.
+
+The fail-closed patch is registered in `scripts/vendor-ofm.mjs`; original and
+adapted recovery-file hashes are recorded in `vendor/ofm/UPSTREAM.json`.
+The base snapshot pin, source inventory, original download sizes and SHA-256
+values are unchanged because no pristine channel/EAC download was replaced.
+Existing service management, console, uninstall, authorization and licenses
+are preserved. EAC trust-root/IP migration, DSH integration and the newer
+refusal-handling pipeline need separate compatibility validation; this update
+does not claim to resolve current live EAC connectivity or issue #19.
+
 ## 0.9.7 - 2026-11-24
 
 Reviewed upstream through `8f3182b78938344436cc50c34dbfe947136cce9f`.

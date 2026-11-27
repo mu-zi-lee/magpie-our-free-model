@@ -553,6 +553,12 @@
       "originalSha256": "163ee1de3d4d59ec48b044f8545cfab91d395db2135845603d2657c1ceed0ac0",
       "sha256": "f94ac6477f2fa6c231d2d7430331c1fa96bff4041d8f1b1d5ba7f126aaeda6fe",
       "reason": "Carry the listing prices through refresh and persist the priced-at-zero/priced-above-zero id sets so admission survives a restart."
+    },
+    {
+      "path": "src/recovery.js",
+      "originalSha256": "3fcacbe793755d5101d9a331d35cd868d020a3f26b9d359bd2adfee968673169",
+      "sha256": "d4cb98f71ba689d00738949fa6b90238470b48b0515fa0c1e6b04c2d81356999",
+      "reason": "Port upstream 36734a8: count ordinary data/image_url tool-schema fields in continuation size estimates while discounting inline images."
     }
   ]
 }

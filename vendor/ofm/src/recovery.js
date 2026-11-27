@@ -94,8 +94,14 @@ export function checkpointFits(payload, entry, checkpoint, outputBudget) {
   if (!Number.isFinite(context) || context <= 0) return true
   const checkpointBytes = Buffer.byteLength(checkpoint, 'utf8')
   if (checkpointBytes > Math.max(0, context - outputBudget) / 2) return false
-  const textBytes = Buffer.byteLength(JSON.stringify(payload, (key, value) => {
-    if (key === 'image_url' || key === 'data') return '[image omitted from text estimate]'
+  const OMITTED = '[image omitted from text estimate]'
+  const textBytes = Buffer.byteLength(JSON.stringify(payload, function (key, value) {
+    if (key === 'image_url') {
+      if (typeof value === 'string') return value.startsWith('data:') ? OMITTED : value
+      if (value && typeof value === 'object' && typeof value.url === 'string' && value.url.startsWith('data:')) return OMITTED
+      return value
+    }
+    if (key === 'data' && this?.type === 'base64' && typeof value === 'string') return OMITTED
     return value
   }), 'utf8')
   return textBytes + outputBudget < context
